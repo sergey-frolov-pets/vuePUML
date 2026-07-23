@@ -12,7 +12,7 @@ const props = defineProps<{
   canExport: boolean;
   layout: LayoutEngine;
   previewBackground: string;
-  darkMode: boolean;
+  diagramDarkMode: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -21,6 +21,7 @@ const emit = defineEmits<{
   exportPng: [];
   "update:layout": [value: LayoutEngine];
   "update:previewBackground": [value: string];
+  "update:diagramDarkMode": [value: boolean];
 }>();
 
 const isFullscreen = ref(false);
@@ -71,12 +72,13 @@ watch(isFullscreen, (value) => {
           :can-export="canExport"
           :layout="layout"
           :preview-background="previewBackground"
-          :dark-mode="darkMode"
+          :diagram-dark-mode="diagramDarkMode"
           @render-now="emit('renderNow')"
           @export-svg="emit('exportSvg')"
           @export-png="emit('exportPng')"
           @update:layout="emit('update:layout', $event)"
           @update:preview-background="emit('update:previewBackground', $event)"
+          @update:diagram-dark-mode="emit('update:diagramDarkMode', $event)"
         />
         <span v-if="isRendering" class="status-pill">Рендеринг…</span>
       </div>

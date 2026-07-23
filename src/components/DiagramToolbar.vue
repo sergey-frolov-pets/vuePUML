@@ -2,12 +2,12 @@
 import { LAYOUT_ENGINES, type LayoutEngine } from "@/constants";
 import { DEFAULT_PREVIEW_BG } from "@/constants/editor-settings";
 
-defineProps<{
+const props = defineProps<{
   isRendering: boolean;
   canExport: boolean;
   layout: LayoutEngine;
   previewBackground: string;
-  darkMode: boolean;
+  diagramDarkMode: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -16,6 +16,7 @@ const emit = defineEmits<{
   renderNow: [];
   "update:layout": [value: LayoutEngine];
   "update:previewBackground": [value: string];
+  "update:diagramDarkMode": [value: boolean];
 }>();
 
 const layoutOptions = Object.entries(LAYOUT_ENGINES).map(([label, value]) => ({
@@ -28,6 +29,10 @@ function resetPreviewBackground(isDark: boolean): void {
     "update:previewBackground",
     isDark ? DEFAULT_PREVIEW_BG.dark : DEFAULT_PREVIEW_BG.light,
   );
+}
+
+function toggleDiagramTheme(): void {
+  emit("update:diagramDarkMode", !props.diagramDarkMode);
 }
 </script>
 
@@ -73,11 +78,25 @@ function resetPreviewBackground(isDark: boolean): void {
         class="btn preview-toolbar__reset"
         type="button"
         title="Сбросить фон"
-        @click="resetPreviewBackground(darkMode)"
+        @click="resetPreviewBackground(diagramDarkMode)"
       >
         ↺
       </button>
     </label>
+
+    <button
+      class="btn preview-toolbar__theme"
+      type="button"
+      :aria-pressed="diagramDarkMode"
+      :title="
+        diagramDarkMode
+          ? 'Переключить на светлую тему диаграммы'
+          : 'Переключить на тёмную тему диаграммы'
+      "
+      @click="toggleDiagramTheme"
+    >
+      {{ diagramDarkMode ? "Светлая" : "Тёмная" }}
+    </button>
 
     <button
       class="btn"
@@ -146,6 +165,11 @@ function resetPreviewBackground(isDark: boolean): void {
   padding: 0;
   font-size: 1.1rem;
   line-height: 1;
+}
+
+.preview-toolbar__theme[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
 }
 
 .sr-only {

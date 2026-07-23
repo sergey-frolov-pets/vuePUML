@@ -13,7 +13,9 @@ import {
   LAYOUT_ENGINES,
   RENDER_DEBOUNCE_MS,
   STORAGE_KEY_DARK,
+  STORAGE_KEY_DIAGRAM_DARK,
   STORAGE_KEY_LAYOUT,
+  STORAGE_KEY_UI_DARK,
   STORAGE_KEY_SOURCE,
   type LayoutEngine,
 } from "@/constants";
@@ -54,23 +56,40 @@ import type { SyntaxCheckResult } from "@/utils/plantuml-syntax";
 
 const source = ref(DEFAULT_SOURCE);
 const layout = ref<LayoutEngine>(LAYOUT_ENGINES.smetana);
-function readInitialDarkMode(): boolean {
+function readStoredBoolean(key: string): boolean | null {
   try {
-    const savedDark = localStorage.getItem(STORAGE_KEY_DARK);
-    if (savedDark !== null) {
-      return savedDark === "true";
+    const saved = localStorage.getItem(key);
+    if (saved !== null) {
+      return saved === "true";
     }
   } catch {
     // file:// может блокировать localStorage
   }
 
-  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  return null;
 }
 
-const darkMode = ref(readInitialDarkMode());
+function readInitialUiDarkMode(): boolean {
+  return (
+    readStoredBoolean(STORAGE_KEY_UI_DARK) ??
+    readStoredBoolean(STORAGE_KEY_DARK) ??
+    window.matchMedia("(prefers-color-scheme: dark)").matches
+  );
+}
+
+function readInitialDiagramDarkMode(): boolean {
+  return (
+    readStoredBoolean(STORAGE_KEY_DIAGRAM_DARK) ??
+    readStoredBoolean(STORAGE_KEY_DARK) ??
+    window.matchMedia("(prefers-color-scheme: dark)").matches
+  );
+}
+
+const uiDarkMode = ref(readInitialUiDarkMode());
+const diagramDarkMode = ref(readInitialDiagramDarkMode());
 const editorFontSize = ref<EditorFontSize>(readInitialEditorFontSize());
 const editorFontFamilyId = ref<EditorFontFamilyId>(readInitialEditorFontFamilyId());
-const previewBackground = ref(readInitialPreviewBackground(darkMode.value));
+const previewBackground = ref(readInitialPreviewBackground(diagramDarkMode.value));
 const editorFontFamily = computed(() =>
   resolveEditorFontFamily(editorFontFamilyId.value),
 );
@@ -146,7 +165,11 @@ function readInitialPreviewBackground(isDark: boolean): string {
 function persistSettings(): void {
   try {
     localStorage.setItem(STORAGE_KEY_SOURCE, source.value);
-    localStorage.setItem(STORAGE_KEY_DARK, String(darkMode.value));
+    localStorage.setItem(STORAGE_KEY_UI_DARK, String(uiDarkMode.value));
+    localStorage.setItem(
+      STORAGE_KEY_DIAGRAM_DARK,
+      String(diagramDarkMode.value),
+    );
     localStorage.setItem(STORAGE_KEY_LAYOUT, layout.value);
     localStorage.setItem(STORAGE_KEY_EDITOR_FONT_SIZE, editorFontSize.value);
     localStorage.setItem(STORAGE_KEY_EDITOR_FONT_FAMILY, editorFontFamilyId.value);
@@ -185,7 +208,9 @@ async function renderDiagram(): Promise<void> {
   try {
     const prepared = applyLayoutPragma(source.value, layout.value);
     const lines = splitSourceLines(prepared);
-    const result = await renderPlantUmlToSvg(lines, { dark: darkMode.value });
+    const result = await renderPlantUmlToSvg(lines, {
+      dark: diagramDarkMode.value,
+    });
     svg.value = result;
   } catch (renderError) {
     svg.value = "";
@@ -276,7 +301,7 @@ async function validateSyntax(): Promise<void> {
     const result = await validatePlantUmlSyntax(
       source.value,
       layout.value,
-      darkMode.value,
+      diagramDarkMode.value,
     );
     syntaxResult.value = result;
     updateSyntaxHighlights(result);
@@ -314,10 +339,16 @@ async function exportPng(): Promise<void> {
 }
 
 watch(
-  darkMode,
-  (isDark, wasDark) => {
+  uiDarkMode,
+  (isDark) => {
     document.documentElement.dataset.theme = isDark ? "dark" : "light";
+  },
+  { immediate: true },
+);
 
+watch(
+  diagramDarkMode,
+  (isDark, wasDark) => {
     if (wasDark === undefined || wasDark === isDark) {
       return;
     }
@@ -346,12 +377,12 @@ watch(
   { immediate: true },
 );
 
-watch([source, layout, darkMode], () => {
+watch([source, layout, diagramDarkMode], () => {
   persistSettings();
   scheduleRender();
 });
 
-watch([editorFontSize, editorFontFamilyId, previewBackground], () => {
+watch([editorFontSize, editorFontFamilyId, previewBackground, uiDarkMode], () => {
   persistSettings();
 });
 
@@ -441,7 +472,7 @@ onMounted(() => {
         :can-export="canExport"
         v-model:layout="layout"
         v-model:preview-background="previewBackground"
-        :dark-mode="darkMode"
+        v-model:diagram-dark-mode="diagramDarkMode"
         @render-now="renderDiagram"
         @export-svg="exportSvg"
         @export-png="exportPng"
@@ -457,7 +488,7 @@ onMounted(() => {
       </span>
       <span>Файл: {{ loadedFileName }}</span>
       <span>Раскладка: {{ layout }}</span>
-      <span>Режим: {{ darkMode ? "тёмный" : "светлый" }}</span>
+      <span>Диаграмма: {{ diagramDarkMode ? "тёмная" : "светлая" }}</span>
       <span class="status-bar__copyright">{{ APP_META.copyright }}</span>
     </footer>
 
@@ -470,7 +501,7 @@ onMounted(() => {
 
     <SettingsModal
       :open="isSettingsModalOpen"
-      v-model:dark-mode="darkMode"
+      v-model:dark-mode="uiDarkMode"
       v-model:editor-font-size="editorFontSize"
       v-model:editor-font-family-id="editorFontFamilyId"
       @close="isSettingsModalOpen = false"
