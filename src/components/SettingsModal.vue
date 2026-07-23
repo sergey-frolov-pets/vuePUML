@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import AppModal from "@/components/AppModal.vue";
-import { APP_LINKS } from "@/constants";
+import { APP_LINKS, LAYOUT_ENGINES, type LayoutEngine } from "@/constants";
 import {
   EDITOR_FONT_FAMILY_OPTIONS,
   EDITOR_FONT_SIZE_OPTIONS,
@@ -10,6 +10,7 @@ import {
 
 defineProps<{
   open: boolean;
+  layout: LayoutEngine;
   darkMode: boolean;
   editorFontSize: EditorFontSize;
   editorFontFamilyId: EditorFontFamilyId;
@@ -17,12 +18,18 @@ defineProps<{
 
 const emit = defineEmits<{
   close: [];
+  "update:layout": [value: LayoutEngine];
   "update:darkMode": [value: boolean];
   "update:editorFontSize": [value: EditorFontSize];
   "update:editorFontFamilyId": [value: EditorFontFamilyId];
   openShareHelp: [];
   openAbout: [];
 }>();
+
+const layoutOptions = Object.entries(LAYOUT_ENGINES).map(([label, value]) => ({
+  label,
+  value,
+}));
 </script>
 
 <template>
@@ -68,6 +75,32 @@ const emit = defineEmits<{
             v-for="option in EDITOR_FONT_FAMILY_OPTIONS"
             :key="option.id"
             :value="option.id"
+          >
+            {{ option.label }}
+          </option>
+        </select>
+      </label>
+    </div>
+
+    <div class="settings-section">
+      <h3 class="settings-section__title">Рендеринг</h3>
+
+      <label class="settings-field">
+        <span class="settings-field__label">Движок раскладки</span>
+        <select
+          class="select"
+          :value="layout"
+          @change="
+            emit(
+              'update:layout',
+              ($event.target as HTMLSelectElement).value as LayoutEngine,
+            )
+          "
+        >
+          <option
+            v-for="option in layoutOptions"
+            :key="option.value"
+            :value="option.value"
           >
             {{ option.label }}
           </option>

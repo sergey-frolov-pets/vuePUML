@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import { LAYOUT_ENGINES, type LayoutEngine } from "@/constants";
 import { DEFAULT_PREVIEW_BG } from "@/constants/editor-settings";
 
 const props = defineProps<{
   isRendering: boolean;
   canExport: boolean;
-  layout: LayoutEngine;
   previewBackground: string;
   diagramDarkMode: boolean;
 }>();
@@ -14,15 +12,9 @@ const emit = defineEmits<{
   exportSvg: [];
   exportPng: [];
   renderNow: [];
-  "update:layout": [value: LayoutEngine];
   "update:previewBackground": [value: string];
   "update:diagramDarkMode": [value: boolean];
 }>();
-
-const layoutOptions = Object.entries(LAYOUT_ENGINES).map(([label, value]) => ({
-  label,
-  value,
-}));
 
 function resetPreviewBackground(isDark: boolean): void {
   emit(
@@ -38,30 +30,10 @@ function toggleDiagramTheme(): void {
 
 <template>
   <div class="preview-toolbar">
-    <label class="preview-toolbar__field">
-      <span class="sr-only">Движок раскладки</span>
-      <select
-        class="select preview-toolbar__select"
-        :value="layout"
-        title="Движок раскладки"
-        @change="
-          emit(
-            'update:layout',
-            ($event.target as HTMLSelectElement).value as LayoutEngine,
-          )
-        "
-      >
-        <option
-          v-for="option in layoutOptions"
-          :key="option.value"
-          :value="option.value"
-        >
-          {{ option.label }}
-        </option>
-      </select>
-    </label>
-
-    <label class="preview-toolbar__field preview-toolbar__field--color" title="Фон предпросмотра">
+    <label
+      class="preview-toolbar__color-field"
+      title="Фон предпросмотра"
+    >
       <span class="sr-only">Фон предпросмотра</span>
       <input
         class="preview-toolbar__color"
@@ -74,18 +46,29 @@ function toggleDiagramTheme(): void {
           )
         "
       />
-      <button
-        class="btn preview-toolbar__reset"
-        type="button"
-        title="Сбросить фон"
-        @click="resetPreviewBackground(diagramDarkMode)"
-      >
-        ↺
-      </button>
     </label>
 
     <button
-      class="btn preview-toolbar__theme"
+      class="btn btn-icon"
+      type="button"
+      title="Сбросить фон"
+      aria-label="Сбросить фон"
+      @click="resetPreviewBackground(diagramDarkMode)"
+    >
+      <svg class="btn-icon__svg" viewBox="0 0 24 24" aria-hidden="true">
+        <path
+          d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </button>
+
+    <button
+      class="btn btn-icon"
       type="button"
       :aria-pressed="diagramDarkMode"
       :title="
@@ -93,34 +76,125 @@ function toggleDiagramTheme(): void {
           ? 'Переключить на светлую тему диаграммы'
           : 'Переключить на тёмную тему диаграммы'
       "
+      :aria-label="
+        diagramDarkMode
+          ? 'Переключить на светлую тему диаграммы'
+          : 'Переключить на тёмную тему диаграммы'
+      "
       @click="toggleDiagramTheme"
     >
-      {{ diagramDarkMode ? "Светлая" : "Тёмная" }}
+      <svg
+        v-if="diagramDarkMode"
+        class="btn-icon__svg"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <circle
+          cx="12"
+          cy="12"
+          r="4"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        />
+        <path
+          d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        />
+      </svg>
+      <svg
+        v-else
+        class="btn-icon__svg"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <path
+          d="M21 14.5A8.5 8.5 0 0 1 9.5 3 7 7 0 1 0 21 14.5Z"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linejoin="round"
+        />
+      </svg>
     </button>
 
     <button
-      class="btn"
+      class="btn btn-icon"
       type="button"
+      title="Обновить"
+      aria-label="Обновить"
       :disabled="isRendering"
       @click="emit('renderNow')"
     >
-      Обновить
+      <svg class="btn-icon__svg" viewBox="0 0 24 24" aria-hidden="true">
+        <path
+          d="M20 12a8 8 0 1 1-2.3-5.7M20 4v6h-6"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
     </button>
+
     <button
-      class="btn btn-primary"
+      class="btn btn-icon btn-primary"
       type="button"
+      title="Экспорт SVG"
+      aria-label="Экспорт SVG"
       :disabled="!canExport"
       @click="emit('exportSvg')"
     >
-      SVG
+      <svg class="btn-icon__svg" viewBox="0 0 24 24" aria-hidden="true">
+        <path
+          d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linejoin="round"
+        />
+        <path
+          d="M14 3v5h5M8 13h8M8 17h5"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        />
+      </svg>
     </button>
+
     <button
-      class="btn btn-primary"
+      class="btn btn-icon btn-primary"
       type="button"
+      title="Экспорт PNG"
+      aria-label="Экспорт PNG"
       :disabled="!canExport"
       @click="emit('exportPng')"
     >
-      PNG
+      <svg class="btn-icon__svg" viewBox="0 0 24 24" aria-hidden="true">
+        <rect
+          x="3"
+          y="5"
+          width="18"
+          height="14"
+          rx="2"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        />
+        <circle cx="9" cy="10" r="2" fill="currentColor" />
+        <path
+          d="m21 15-5-5L5 21"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
     </button>
   </div>
 </template>
@@ -129,47 +203,24 @@ function toggleDiagramTheme(): void {
 .preview-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
 }
 
-.preview-toolbar__field {
+.preview-toolbar__color-field {
   display: inline-flex;
-  align-items: center;
   margin: 0;
 }
 
-.preview-toolbar__field--color {
-  gap: 4px;
-}
-
-.preview-toolbar__select {
-  width: auto;
-  min-width: 108px;
-  min-height: 40px;
-}
-
 .preview-toolbar__color {
-  width: 40px;
-  height: 40px;
+  box-sizing: border-box;
+  width: 36px;
+  height: 36px;
   padding: 2px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface);
   cursor: pointer;
-}
-
-.preview-toolbar__reset {
-  min-width: 40px;
-  min-height: 40px;
-  padding: 0;
-  font-size: 1.1rem;
-  line-height: 1;
-}
-
-.preview-toolbar__theme[aria-pressed="true"] {
-  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
-  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
 }
 
 .sr-only {

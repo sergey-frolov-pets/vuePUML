@@ -2,7 +2,6 @@
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import DiagramToolbar from "@/components/DiagramToolbar.vue";
 import PanelFullscreenButton from "@/components/PanelFullscreenButton.vue";
-import type { LayoutEngine } from "@/constants";
 import { sanitizeSvgForPreview } from "@/utils/export";
 
 const props = defineProps<{
@@ -10,7 +9,6 @@ const props = defineProps<{
   error: string;
   isRendering: boolean;
   canExport: boolean;
-  layout: LayoutEngine;
   previewBackground: string;
   diagramDarkMode: boolean;
 }>();
@@ -19,7 +17,6 @@ const emit = defineEmits<{
   renderNow: [];
   exportSvg: [];
   exportPng: [];
-  "update:layout": [value: LayoutEngine];
   "update:previewBackground": [value: string];
   "update:diagramDarkMode": [value: boolean];
 }>();
@@ -70,13 +67,11 @@ watch(isFullscreen, (value) => {
         <DiagramToolbar
           :is-rendering="isRendering"
           :can-export="canExport"
-          :layout="layout"
           :preview-background="previewBackground"
           :diagram-dark-mode="diagramDarkMode"
           @render-now="emit('renderNow')"
           @export-svg="emit('exportSvg')"
           @export-png="emit('exportPng')"
-          @update:layout="emit('update:layout', $event)"
           @update:preview-background="emit('update:previewBackground', $event)"
           @update:diagram-dark-mode="emit('update:diagramDarkMode', $event)"
         />

@@ -470,7 +470,6 @@ onMounted(() => {
         :error="error"
         :is-rendering="isRendering"
         :can-export="canExport"
-        v-model:layout="layout"
         v-model:preview-background="previewBackground"
         v-model:diagram-dark-mode="diagramDarkMode"
         @render-now="renderDiagram"
@@ -501,6 +500,7 @@ onMounted(() => {
 
     <SettingsModal
       :open="isSettingsModalOpen"
+      v-model:layout="layout"
       v-model:dark-mode="uiDarkMode"
       v-model:editor-font-size="editorFontSize"
       v-model:editor-font-family-id="editorFontFamilyId"
