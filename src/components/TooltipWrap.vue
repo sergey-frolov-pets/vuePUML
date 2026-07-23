@@ -17,11 +17,10 @@ const {
 <template>
   <span
     class="tooltip-wrap"
-    :title="label"
-    @pointerdown="onPointerDown"
-    @pointerup="onPointerUp"
-    @pointercancel="onPointerCancel"
-    @pointerleave="onPointerLeave"
+    @pointerdown.capture="onPointerDown"
+    @pointerup.capture="onPointerUp"
+    @pointercancel.capture="onPointerCancel"
+    @pointerleave.capture="onPointerLeave"
     @contextmenu.prevent
   >
     <slot />
@@ -39,7 +38,9 @@ const {
 .tooltip-wrap {
   position: relative;
   display: inline-flex;
-  touch-action: manipulation;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .tooltip-wrap__tooltip {

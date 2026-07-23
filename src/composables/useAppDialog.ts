@@ -53,9 +53,29 @@ function closeDialog(): void {
   dialogState.value = null;
 }
 
+function dismissActiveDialog(): void {
+  const activeDialog = dialogState.value;
+  if (!activeDialog) {
+    return;
+  }
+
+  if (activeDialog.type === "confirm") {
+    activeDialog.resolve(false);
+    return;
+  }
+
+  if (activeDialog.type === "prompt") {
+    activeDialog.resolve(null);
+    return;
+  }
+
+  activeDialog.resolve();
+}
+
 export function useAppDialog() {
   function confirm(options: ConfirmDialogOptions): Promise<boolean> {
     return new Promise((resolve) => {
+      dismissActiveDialog();
       dialogState.value = {
         type: "confirm",
         options,
@@ -69,6 +89,7 @@ export function useAppDialog() {
 
   function prompt(options: PromptDialogOptions): Promise<string | null> {
     return new Promise((resolve) => {
+      dismissActiveDialog();
       dialogState.value = {
         type: "prompt",
         options,
@@ -83,6 +104,7 @@ export function useAppDialog() {
 
   function alert(options: AlertDialogOptions): Promise<void> {
     return new Promise((resolve) => {
+      dismissActiveDialog();
       dialogState.value = {
         type: "alert",
         options,
