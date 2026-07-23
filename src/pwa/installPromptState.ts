@@ -21,8 +21,12 @@ export function isFileProtocol(): boolean {
   return window.location.protocol === "file:";
 }
 
+export function isPwaInstallSupported(): boolean {
+  return window.isSecureContext && !isFileProtocol();
+}
+
 export function initInstallPromptCapture(): void {
-  if (isFileProtocol()) {
+  if (!isPwaInstallSupported()) {
     return;
   }
 

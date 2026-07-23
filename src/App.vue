@@ -5,6 +5,7 @@ import AppDialogHost from "@/components/AppDialogHost.vue";
 import DiagramEditor from "@/components/DiagramEditor.vue";
 import DiagramPreview from "@/components/DiagramPreview.vue";
 import InstallAppButton from "@/components/InstallAppButton.vue";
+import SecureContextNotice from "@/components/SecureContextNotice.vue";
 import UpdateAppButton from "@/components/UpdateAppButton.vue";
 import SettingsModal from "@/components/SettingsModal.vue";
 import ShareHelpModal from "@/components/ShareHelpModal.vue";
@@ -468,6 +469,8 @@ onMounted(() => {
         </button>
       </nav>
     </header>
+
+    <SecureContextNotice />
 
     <main class="app-main">
       <DiagramEditor
