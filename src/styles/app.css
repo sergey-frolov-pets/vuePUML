@@ -323,6 +323,10 @@ a {
   height: 22px;
 }
 
+.status-bar__copyright {
+  margin-left: auto;
+}
+
 .status-pill {
   display: inline-flex;
   align-items: center;

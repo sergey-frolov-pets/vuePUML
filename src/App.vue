@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
 import AboutModal from "@/components/AboutModal.vue";
+import AppDialogHost from "@/components/AppDialogHost.vue";
 import DiagramEditor from "@/components/DiagramEditor.vue";
 import DiagramPreview from "@/components/DiagramPreview.vue";
 import InstallAppButton from "@/components/InstallAppButton.vue";
@@ -42,6 +43,7 @@ import {
   consumeSharedLaunch,
   setupLaunchQueue,
 } from "@/composables/usePumlShare";
+import { useAppDialog } from "@/composables/useAppDialog";
 import {
   applyLayoutPragma,
   splitSourceLines,
@@ -51,7 +53,7 @@ import {
   downloadTextFile,
   svgToPngBlob,
 } from "@/utils/export";
-import { savePumlSource } from "@/utils/puml-files";
+import { savePumlSource, resolvePumlFileName } from "@/utils/puml-files";
 import type { SyntaxCheckResult } from "@/utils/plantuml-syntax";
 
 const source = ref(DEFAULT_SOURCE);
@@ -106,6 +108,8 @@ const isSyntaxModalOpen = ref(false);
 const isSettingsModalOpen = ref(false);
 const isAboutModalOpen = ref(false);
 const isShareHelpModalOpen = ref(false);
+
+const { prompt, alert } = useAppDialog();
 
 let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -237,7 +241,11 @@ function onFileLoaded(payload: { content: string; fileName: string }): void {
 }
 
 function onImportError(message: string): void {
-  error.value = message;
+  void alert({
+    title: "Ошибка импорта",
+    message,
+    variant: "error",
+  });
 }
 
 function onEditorCleared(): void {
@@ -284,12 +292,26 @@ function updateSyntaxHighlights(result: SyntaxCheckResult | null): void {
   ];
 }
 
-function savePuml(): void {
+async function savePuml(): Promise<void> {
   if (!canSave.value) {
     return;
   }
 
-  savePumlSource(source.value, loadedFileName.value);
+  const fileName = await prompt({
+    title: "Сохранить .puml",
+    message: "Имя файла",
+    value: loadedFileName.value,
+    confirmLabel: "Сохранить",
+    placeholder: "diagram.puml",
+  });
+
+  if (fileName === null) {
+    return;
+  }
+
+  const resolvedName = resolvePumlFileName(fileName);
+  loadedFileName.value = resolvedName;
+  savePumlSource(source.value, resolvedName);
 }
 
 async function validateSyntax(): Promise<void> {
@@ -331,10 +353,15 @@ async function exportPng(): Promise<void> {
     const pngBlob = await svgToPngBlob(svg.value, background);
     downloadBlob(pngBlob, "diagram.png");
   } catch (exportError) {
-    error.value =
+    const message =
       exportError instanceof Error
         ? exportError.message
         : "Не удалось экспортировать PNG";
+    void alert({
+      title: "Ошибка экспорта",
+      message,
+      variant: "error",
+    });
   }
 }
 
@@ -498,7 +525,10 @@ onMounted(() => {
         </svg>
       </span>
       <span v-else class="status-pill is-error">{{ engineStatus }}</span>
+      <span class="status-bar__copyright">{{ APP_META.copyright }}</span>
     </footer>
+
+    <AppDialogHost />
 
     <SyntaxResultModal
       :open="isSyntaxModalOpen"
