@@ -5,6 +5,17 @@ export interface InstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
+declare global {
+  interface Window {
+    __deferredPwaInstallPrompt?: InstallPromptEvent | null;
+  }
+
+  interface WindowEventMap {
+    "pwa-installprompt": Event;
+    "pwa-installed": Event;
+  }
+}
+
 export const deferredInstallPrompt = ref<InstallPromptEvent | null>(null);
 export const isRelatedAppInstalled = ref(false);
 export const isRelatedAppCheckDone = ref(false);
@@ -24,6 +35,22 @@ export function isFileProtocol(): boolean {
 
 export function isPwaInstallSupported(): boolean {
   return window.isSecureContext && !isFileProtocol();
+}
+
+function captureInstallPrompt(event: Event): void {
+  event.preventDefault();
+  const installEvent = event as InstallPromptEvent;
+  window.__deferredPwaInstallPrompt = installEvent;
+  isRelatedAppInstalled.value = false;
+  installCompletedThisSession.value = false;
+  deferredInstallPrompt.value = installEvent;
+}
+
+function syncEarlyInstallPrompt(): void {
+  const earlyPrompt = window.__deferredPwaInstallPrompt;
+  if (earlyPrompt) {
+    deferredInstallPrompt.value = earlyPrompt;
+  }
 }
 
 export async function checkRelatedInstalledApps(): Promise<boolean> {
@@ -58,31 +85,38 @@ export function initInstallPromptCapture(): void {
     return;
   }
 
+  syncEarlyInstallPrompt();
   void refreshRelatedAppInstalledState();
+
+  window.addEventListener("beforeinstallprompt", captureInstallPrompt);
+  window.addEventListener("pwa-installprompt", syncEarlyInstallPrompt);
 
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
+      syncEarlyInstallPrompt();
       void refreshRelatedAppInstalledState();
     }
-  });
-
-  window.addEventListener("beforeinstallprompt", (event) => {
-    event.preventDefault();
-    isRelatedAppInstalled.value = false;
-    installCompletedThisSession.value = false;
-    deferredInstallPrompt.value = event as InstallPromptEvent;
   });
 
   window.addEventListener("appinstalled", () => {
     isRelatedAppInstalled.value = true;
     installCompletedThisSession.value = true;
     deferredInstallPrompt.value = null;
+    window.__deferredPwaInstallPrompt = null;
+  });
+
+  window.addEventListener("pwa-installed", () => {
+    isRelatedAppInstalled.value = true;
+    installCompletedThisSession.value = true;
+    deferredInstallPrompt.value = null;
+    window.__deferredPwaInstallPrompt = null;
   });
 
   const standaloneMedia = window.matchMedia("(display-mode: standalone)");
   standaloneMedia.addEventListener("change", () => {
     if (isStandaloneApp()) {
       deferredInstallPrompt.value = null;
+      window.__deferredPwaInstallPrompt = null;
     }
   });
 }
