@@ -2,6 +2,10 @@ import { computed } from "vue";
 import { APP_LINKS } from "@/constants";
 import { useAppDialog } from "@/composables/useAppDialog";
 import {
+  buildManualInstallMessage,
+  inspectPwaInstallStatus,
+} from "@/pwa/installability";
+import {
   deferredInstallPrompt,
   isFileProtocol,
   isPwaInstallSupported,
@@ -16,19 +20,11 @@ const HTTPS_SETUP_MESSAGE =
   "Сайт открыт по HTTP. Установка PWA возможна только по HTTPS. " +
   "В GitHub: Settings → Pages → Custom domain → дождитесь проверки DNS и включите «Enforce HTTPS».";
 
-const BROWSER_INSTALL_MESSAGE =
-  "Браузер ещё не готов предложить установку. Подождите несколько секунд и нажмите снова, " +
-  "или откройте меню браузера → «Установить приложение» / «Добавить на главный экран».";
-
-const ALREADY_INSTALLED_MESSAGE =
-  "Приложение уже установлено. Откройте его с рабочего стола или из меню приложений. " +
-  "Если вы удалили приложение — перезагрузите страницу и подождите предложения установки.";
-
 const INSTALL_ERROR_MESSAGE =
   "Не удалось выполнить установку. Попробуйте через меню браузера или перезагрузите страницу.";
 
 export function usePwaInstall() {
-  const { alert } = useAppDialog();
+  const { alert, confirm } = useAppDialog();
 
   const isAlreadyInstalled = computed(
     () =>
@@ -47,6 +43,35 @@ export function usePwaInstall() {
     () => !isFileProtocol() && !isPwaInstallSupported(),
   );
 
+  async function showManualInstallHelp(): Promise<void> {
+    syncEarlyPrompt();
+    const installed = await refreshRelatedAppInstalledState();
+    const status = await inspectPwaInstallStatus({
+      hasDeferredPrompt: deferredInstallPrompt.value !== null,
+      relatedAppInstalled: installed || isAlreadyInstalled.value,
+      isStandalone: isStandaloneApp(),
+    });
+
+    const message = buildManualInstallMessage(status);
+    const openInstallPage = await confirm({
+      title: "Установка вручную",
+      message: `${message}\n\nОткрыть страницу с инструкциями?`,
+      confirmLabel: "Открыть",
+      cancelLabel: "Закрыть",
+    });
+
+    if (openInstallPage) {
+      window.location.assign(APP_LINKS.installPage);
+    }
+  }
+
+  function syncEarlyPrompt(): void {
+    const earlyPrompt = window.__deferredPwaInstallPrompt;
+    if (earlyPrompt && !deferredInstallPrompt.value) {
+      deferredInstallPrompt.value = earlyPrompt;
+    }
+  }
+
   async function installApp(): Promise<void> {
     if (isPwaInstallInProgress.value) {
       return;
@@ -64,6 +89,8 @@ export function usePwaInstall() {
         return;
       }
 
+      syncEarlyPrompt();
+
       const promptEvent = deferredInstallPrompt.value;
       if (promptEvent) {
         await promptEvent.prompt();
@@ -75,6 +102,7 @@ export function usePwaInstall() {
         }
 
         deferredInstallPrompt.value = null;
+        window.__deferredPwaInstallPrompt = null;
         return;
       }
 
@@ -82,15 +110,13 @@ export function usePwaInstall() {
       if (installed || isAlreadyInstalled.value) {
         await alert({
           title: "Уже установлено",
-          message: ALREADY_INSTALLED_MESSAGE,
+          message:
+            "Приложение уже установлено. Откройте его с рабочего стола или из меню приложений.",
         });
         return;
       }
 
-      await alert({
-        title: "Установка недоступна",
-        message: `${BROWSER_INSTALL_MESSAGE}\n\nПодробнее: ${APP_LINKS.installPage}`,
-      });
+      await showManualInstallHelp();
     } catch {
       await alert({
         title: "Ошибка установки",

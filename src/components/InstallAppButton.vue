@@ -21,7 +21,7 @@ const installTitle = computed(() => {
   }
 
   if (!canInstallNow.value) {
-    return "Нажмите — покажем подсказку по установке";
+    return "Установка вручную — нажмите для инструкции";
   }
 
   return "Установить приложение";

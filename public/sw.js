@@ -1,9 +1,24 @@
+const PRECACHE = "vueplantuml-precache-v2";
 const SHARED_PUML_CACHE = "shared-puml-v1";
 const APP_SHELL_CACHE = "vueplantuml-shell-v1";
 const LIBRARY_API_CACHE = "vueplantuml-library-api-v1";
 
+const PRECACHE_URLS = [
+  "./index.html",
+  "./manifest.webmanifest",
+  "./icons/icon-192.png",
+  "./icons/icon-512.png",
+  "./icons/icon.svg",
+];
+
 self.addEventListener("install", (event) => {
-  event.waitUntil(self.skipWaiting());
+  event.waitUntil(
+    caches
+      .open(PRECACHE)
+      .then((cache) => cache.addAll(PRECACHE_URLS))
+      .then(() => self.skipWaiting())
+      .catch(() => self.skipWaiting()),
+  );
 });
 
 self.addEventListener("activate", (event) => {
@@ -50,9 +65,18 @@ self.addEventListener("fetch", (event) => {
 
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request).catch(() =>
-        caches.open(APP_SHELL_CACHE).then((cache) => cache.match("./index.html")),
-      ),
+      fetch(request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(APP_SHELL_CACHE).then((cache) => cache.put("./index.html", copy));
+          return response;
+        })
+        .catch(() =>
+          caches
+            .open(PRECACHE)
+            .then((cache) => cache.match("./index.html"))
+            .then((cached) => cached || caches.open(APP_SHELL_CACHE).then((cache) => cache.match("./index.html"))),
+        ),
     );
   }
 });

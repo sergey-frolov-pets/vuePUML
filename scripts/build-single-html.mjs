@@ -58,6 +58,10 @@ function buildSingleHtml() {
       readFileSync(path.join(vendorDir, "plantuml.js"), "utf8"),
     ),
   );
+  const pwaBootstrap = readFileSync(
+    path.join(appRoot, "public", "pwa-install-bootstrap.js"),
+    "utf8",
+  );
 
   const html = `<!DOCTYPE html>
 <html lang="ru">
@@ -79,6 +83,9 @@ function buildSingleHtml() {
     <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
     <meta name="theme-color" content="#42b883" />
     ${css ? `<style>\n${css}\n    </style>` : ""}
+    <script>
+${escapeScriptContent(pwaBootstrap)}
+    </script>
   </head>
   <body>
     <div id="app">
@@ -115,7 +122,14 @@ ${escapeScriptContent(appJs)}
     path.join(appRoot, "public", "manifest.webmanifest"),
     path.join(distDir, "manifest.webmanifest"),
   );
-  copyFileSync(path.join(appRoot, "public", "sw.js"), path.join(distDir, "sw.js"));
+  copyFileSync(
+    path.join(appRoot, "public", "sw.js"),
+    path.join(distDir, "sw.js"),
+  );
+  copyFileSync(
+    path.join(appRoot, "public", "pwa-install-bootstrap.js"),
+    path.join(distDir, "pwa-install-bootstrap.js"),
+  );
   copyFileSync(
     path.join(appRoot, "public", "install.html"),
     path.join(distDir, "install.html"),
