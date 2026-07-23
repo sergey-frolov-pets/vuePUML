@@ -1,21 +1,51 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import { usePwaInstall } from "@/composables/usePwaInstall";
 
-const { canShowInstallButton, canInstallNow, isInstalling, installApp } =
-  usePwaInstall();
+const {
+  canShowInstallButton,
+  canInstallNow,
+  needsHttps,
+  isAlreadyInstalled,
+  isInstalling,
+  installApp,
+} = usePwaInstall();
 
-const installTitle = "Установить приложение";
+const installTitle = computed(() => {
+  if (needsHttps.value) {
+    return "Установка доступна только по HTTPS";
+  }
+
+  if (isAlreadyInstalled.value) {
+    return "Проверить обновление или переустановить";
+  }
+
+  if (!canInstallNow.value) {
+    return "Ожидание предложения установки от браузера";
+  }
+
+  return "Установить приложение";
+});
+
+const installLabel = computed(() =>
+  isAlreadyInstalled.value ? "Обновить" : "Установить",
+);
 </script>
 
 <template>
   <button
     v-if="canShowInstallButton"
     class="btn install-app-btn"
-    :class="{ 'install-app-btn--waiting': !canInstallNow }"
+    :class="{
+      'install-app-btn--waiting': !canInstallNow,
+      'install-app-btn--needs-https': needsHttps,
+      'install-app-btn--installed': isAlreadyInstalled,
+    }"
     type="button"
     :aria-label="installTitle"
     :title="installTitle"
     :disabled="isInstalling"
+    :aria-busy="isInstalling"
     @click="installApp"
   >
     <svg class="install-app-btn__icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -39,7 +69,7 @@ const installTitle = "Установить приложение";
         stroke-linejoin="round"
       />
     </svg>
-    <span class="install-app-btn__label">Установить</span>
+    <span class="install-app-btn__label">{{ installLabel }}</span>
   </button>
 </template>
 
@@ -76,6 +106,16 @@ const installTitle = "Установить приложение";
 
 .install-app-btn--waiting {
   opacity: 0.75;
+}
+
+.install-app-btn--needs-https {
+  border-color: color-mix(in srgb, var(--warning, #c98a00) 45%, var(--border));
+  background: color-mix(in srgb, var(--warning, #c98a00) 10%, var(--surface));
+}
+
+.install-app-btn--installed {
+  border-color: color-mix(in srgb, var(--success) 35%, var(--border));
+  background: color-mix(in srgb, var(--success) 8%, var(--surface));
 }
 
 .install-app-btn__icon {

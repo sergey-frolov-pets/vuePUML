@@ -6,7 +6,7 @@
   "description": "Vue.js PlantUML diagram generator with Smetana layout — works offline via file:// on Android",
   "scripts": {
     "dev": "vite",
-    "prebuild": "node scripts/copy-vendor.mjs && node scripts/generate-pwa-icons.mjs",
+    "prebuild": "node scripts/copy-vendor.mjs && node scripts/generate-pwa-icons.mjs && node scripts/sync-pwa-version.mjs",
     "build": "vue-tsc --noEmit && vite build && node scripts/build-single-html.mjs",
     "build:minimal": "vue-tsc --noEmit && vite build && node scripts/build-minimal.mjs",
     "build:single": "vue-tsc --noEmit && vite build && node scripts/build-single-only.mjs",

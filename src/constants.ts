@@ -1,7 +1,9 @@
+import pkg from "../package.json";
+
 export const APP_META = {
   name: "vuePlantUML",
   developer: "FSVibe",
-  version: "1.0.0",
+  version: pkg.version,
   copyright: "© 2026 FSVibe",
 } as const;
 
