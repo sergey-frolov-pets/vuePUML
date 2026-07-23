@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import ActionIcon from "@/components/icons/ActionIcon.vue";
+import FileBadgeIcon from "@/components/icons/FileBadgeIcon.vue";
 import PanelFullscreenButton from "@/components/PanelFullscreenButton.vue";
 import { isSampleDiagramSource, SAMPLE_DIAGRAMS } from "@/constants";
 import type { EditorFontSize } from "@/constants/editor-settings";
@@ -208,32 +210,44 @@ watch(
     <header class="panel-header">
       <h2 class="panel-title">Исходный код PlantUML</h2>
       <div class="header-actions">
-        <button class="btn" type="button" @click="openFilePicker">
-          Открыть .puml
+        <button
+          class="btn btn-icon"
+          type="button"
+          title="Открыть .puml"
+          aria-label="Открыть .puml"
+          @click="openFilePicker"
+        >
+          <ActionIcon name="folder-open" />
         </button>
         <button
-          class="btn"
+          class="btn btn-icon btn-primary"
           type="button"
+          title="Сохранить .puml"
+          aria-label="Сохранить .puml"
           :disabled="!canSave"
           @click="emit('savePuml')"
         >
-          Сохранить .puml
+          <FileBadgeIcon format="PUML" />
         </button>
         <button
-          class="btn"
+          class="btn btn-icon"
           type="button"
+          :title="isValidating ? 'Проверка...' : 'Проверить синтаксис'"
+          :aria-label="isValidating ? 'Проверка...' : 'Проверить синтаксис'"
           :disabled="isValidating || isRendering"
           @click="emit('validateSyntax')"
         >
-          {{ isValidating ? "Проверка..." : "Проверить" }}
+          <ActionIcon name="check" />
         </button>
         <button
-          class="btn"
+          class="btn btn-icon"
           type="button"
+          title="Очистить"
+          aria-label="Очистить"
           :disabled="!canClear"
           @click="requestClear"
         >
-          Очистить
+          <ActionIcon name="trash" />
         </button>
         <label>
           <span class="sr-only">Пример диаграммы</span>
