@@ -18,8 +18,7 @@ export const LIBRARY_SEARCH_DEBOUNCE_MS = 300;
 
 export const LIBRARY_CACHE_KEY = "plantuml-smetana-library-synced-at";
 
-export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ?? "/api";
+export const STORAGE_KEY_LIBRARY_API_URL = "plantuml-smetana-library-api-url";
 
 export interface SectionDto {
   id: string;

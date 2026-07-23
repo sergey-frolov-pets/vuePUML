@@ -1,8 +1,11 @@
 import type {
+  CreateDiagramPayload,
+  CreateSectionPayload,
   DiagramDto,
   DiagramListItemDto,
   SectionDto,
 } from "@/constants/diagram-library";
+import { resolvePumlFileName } from "@/utils/puml-files";
 
 const DB_NAME = "vueplantuml-library";
 const DB_VERSION = 1;
@@ -129,6 +132,185 @@ export async function loadDiagramDetailFromCache(
         reject(request.error ?? new Error("IndexedDB get failed"));
     }),
   );
+}
+
+export async function loadAllDiagramDetailsFromCache(): Promise<DiagramDto[]> {
+  return runTransaction(STORE_DIAGRAM_DETAILS, "readonly", (stores) =>
+    getAllFromStore<DiagramDto>(stores[STORE_DIAGRAM_DETAILS]),
+  );
+}
+
+function toDiagramListItem(diagram: DiagramDto): DiagramListItemDto {
+  return {
+    id: diagram.id,
+    sectionId: diagram.sectionId,
+    title: diagram.title,
+    description: diagram.description,
+    tags: diagram.tags,
+    language: diagram.language,
+    fileName: diagram.fileName,
+    byteSize: diagram.byteSize,
+    createdAt: diagram.createdAt,
+    updatedAt: diagram.updatedAt,
+  };
+}
+
+function collectSectionSubtree(
+  rootId: string,
+  sections: SectionDto[],
+): Set<string> {
+  const ids = new Set<string>([rootId]);
+  let changed = true;
+
+  while (changed) {
+    changed = false;
+    for (const section of sections) {
+      if (section.parentId && ids.has(section.parentId) && !ids.has(section.id)) {
+        ids.add(section.id);
+        changed = true;
+      }
+    }
+  }
+
+  return ids;
+}
+
+export async function createLocalSection(
+  payload: CreateSectionPayload,
+): Promise<SectionDto> {
+  const now = new Date().toISOString();
+  const section: SectionDto = {
+    id: crypto.randomUUID(),
+    parentId: payload.parentId,
+    title: payload.title.trim(),
+    sortOrder: payload.sortOrder ?? 0,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  await runTransaction(STORE_SECTIONS, "readwrite", (stores) => {
+    stores[STORE_SECTIONS].put(section);
+  });
+
+  return section;
+}
+
+export async function deleteLocalSection(sectionId: string): Promise<void> {
+  const sections = await loadSectionsFromCache();
+  const sectionIds = collectSectionSubtree(sectionId, sections);
+  const diagrams = await loadDiagramsFromCache();
+  const diagramIdsToDelete = diagrams
+    .filter((diagram) => diagram.sectionId && sectionIds.has(diagram.sectionId))
+    .map((diagram) => diagram.id);
+
+  await runTransaction(
+    [STORE_SECTIONS, STORE_DIAGRAMS, STORE_DIAGRAM_DETAILS],
+    "readwrite",
+    (stores) => {
+      for (const id of sectionIds) {
+        stores[STORE_SECTIONS].delete(id);
+      }
+      for (const id of diagramIdsToDelete) {
+        stores[STORE_DIAGRAMS].delete(id);
+        stores[STORE_DIAGRAM_DETAILS].delete(id);
+      }
+    },
+  );
+}
+
+export async function createLocalDiagram(
+  payload: CreateDiagramPayload,
+): Promise<DiagramDto> {
+  const now = new Date().toISOString();
+  const source = payload.source;
+  const diagram: DiagramDto = {
+    id: crypto.randomUUID(),
+    sectionId: payload.sectionId,
+    title: payload.title.trim() || "Diagram",
+    description: payload.description.trim(),
+    tags: payload.tags,
+    language: payload.language,
+    source,
+    fileName: resolvePumlFileName(payload.fileName),
+    byteSize: new TextEncoder().encode(source).length,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  await runTransaction(
+    [STORE_DIAGRAMS, STORE_DIAGRAM_DETAILS],
+    "readwrite",
+    (stores) => {
+      stores[STORE_DIAGRAMS].put(toDiagramListItem(diagram));
+      stores[STORE_DIAGRAM_DETAILS].put(diagram);
+    },
+  );
+
+  return diagram;
+}
+
+export async function deleteLocalDiagram(diagramId: string): Promise<void> {
+  await runTransaction(
+    [STORE_DIAGRAMS, STORE_DIAGRAM_DETAILS],
+    "readwrite",
+    (stores) => {
+      stores[STORE_DIAGRAMS].delete(diagramId);
+      stores[STORE_DIAGRAM_DETAILS].delete(diagramId);
+    },
+  );
+}
+
+export async function searchLocalLibrary(params: {
+  q?: string;
+  sectionId?: string | null;
+  tag?: string;
+  language?: string;
+}): Promise<DiagramListItemDto[]> {
+  const [diagrams, details] = await Promise.all([
+    loadDiagramsFromCache(),
+    loadAllDiagramDetailsFromCache(),
+  ]);
+
+  const sourceById = new Map(details.map((diagram) => [diagram.id, diagram.source]));
+  const query = params.q?.trim().toLowerCase() ?? "";
+  const tag = params.tag?.trim().toLowerCase() ?? "";
+  const language = params.language?.trim() ?? "";
+  const sectionId = params.sectionId ?? null;
+
+  return diagrams.filter((diagram) => {
+    if (sectionId && diagram.sectionId !== sectionId) {
+      return false;
+    }
+    if (language && diagram.language !== language) {
+      return false;
+    }
+    if (tag && !diagram.tags.some((item) => item.toLowerCase() === tag)) {
+      return false;
+    }
+    if (!query) {
+      return true;
+    }
+
+    const source = sourceById.get(diagram.id) ?? "";
+    return (
+      diagram.title.toLowerCase().includes(query) ||
+      diagram.description.toLowerCase().includes(query) ||
+      source.toLowerCase().includes(query)
+    );
+  });
+}
+
+export async function reloadLocalLibraryState(): Promise<{
+  flatSections: SectionDto[];
+  sections: SectionDto[];
+  diagrams: DiagramListItemDto[];
+}> {
+  const flatSections = await loadSectionsFromCache();
+  return {
+    flatSections,
+    sections: buildSectionTree(flatSections),
+    diagrams: await loadDiagramsFromCache(),
+  };
 }
 
 export async function setCacheMeta(key: string, value: string): Promise<void> {

@@ -7,6 +7,7 @@ import {
   type DiagramLanguage,
 } from "@/constants/diagram-library";
 import { useDiagramLibrary } from "@/composables/useDiagramLibrary";
+import { useLibraryApiUrl } from "@/composables/useLibraryApiUrl";
 import { useLocale } from "@/composables/useLocale";
 import { useAppDialog } from "@/composables/useAppDialog";
 import { PUML_FILE_ACCEPT } from "@/utils/puml-files";
@@ -22,6 +23,7 @@ const emit = defineEmits<{
 
 const { t } = useLocale();
 const { confirm, prompt } = useAppDialog();
+const { libraryApiUrl } = useLibraryApiUrl();
 
 const library = useDiagramLibrary();
 
@@ -229,6 +231,12 @@ watch(
     void library.searchDiagrams();
   },
 );
+
+watch(libraryApiUrl, () => {
+  if (props.open) {
+    void library.refresh();
+  }
+});
 </script>
 
 <template>
@@ -240,11 +248,20 @@ watch(
       >
         {{ library.isOnline.value ? t("app.online") : t("app.offline") }}
       </span>
-      <span v-if="library.usingCache.value" class="library-status__hint">
+      <span v-if="library.isLocalMode.value" class="library-status__hint">
+        {{ t("library.localMode") }}
+      </span>
+      <span
+        v-else-if="library.apiAvailable.value"
+        class="library-status__hint"
+      >
+        {{ t("library.serverMode", { url: libraryApiUrl }) }}
+      </span>
+      <span v-else-if="library.usingCache.value" class="library-status__hint">
         {{ t("library.offlineCache") }}
       </span>
       <span
-        v-else-if="!library.apiAvailable.value && library.isOnline.value"
+        v-else-if="library.isOnline.value"
         class="library-status__hint"
       >
         {{ t("library.apiUnavailable") }}

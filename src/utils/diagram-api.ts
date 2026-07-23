@@ -5,7 +5,7 @@ import type {
   DiagramListItemDto,
   SectionDto,
 } from "@/constants/diagram-library";
-import { API_BASE_URL } from "@/constants/diagram-library";
+import { getLibraryApiBaseUrl } from "@/composables/useLibraryApiUrl";
 
 export class DiagramApiError extends Error {
   readonly status: number;
@@ -15,6 +15,15 @@ export class DiagramApiError extends Error {
     this.name = "DiagramApiError";
     this.status = status;
   }
+}
+
+function resolveApiBaseUrl(baseUrl?: string): string {
+  const resolved = baseUrl ?? getLibraryApiBaseUrl();
+  if (!resolved) {
+    throw new DiagramApiError("Library server is not configured", 0);
+  }
+
+  return resolved;
 }
 
 async function parseError(response: Response): Promise<string> {
@@ -33,8 +42,10 @@ async function parseError(response: Response): Promise<string> {
 async function requestJson<T>(
   path: string,
   init?: RequestInit,
+  baseUrl?: string,
 ): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, init);
+  const apiBaseUrl = resolveApiBaseUrl(baseUrl);
+  const response = await fetch(`${apiBaseUrl}${path}`, init);
 
   if (!response.ok) {
     throw new DiagramApiError(await parseError(response), response.status);
@@ -47,33 +58,46 @@ async function requestJson<T>(
   return (await response.json()) as T;
 }
 
-export async function fetchSections(): Promise<{
+export async function fetchSections(
+  baseUrl?: string,
+): Promise<{
   sections: SectionDto[];
   flat: SectionDto[];
 }> {
-  return requestJson("/sections");
+  return requestJson("/sections", undefined, baseUrl);
 }
 
 export async function createSection(
   payload: CreateSectionPayload,
+  baseUrl?: string,
 ): Promise<SectionDto> {
-  return requestJson("/sections", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+  return requestJson(
+    "/sections",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+    baseUrl,
+  );
 }
 
-export async function deleteSection(sectionId: string): Promise<void> {
-  await requestJson(`/sections/${sectionId}`, { method: "DELETE" });
+export async function deleteSection(
+  sectionId: string,
+  baseUrl?: string,
+): Promise<void> {
+  await requestJson(`/sections/${sectionId}`, { method: "DELETE" }, baseUrl);
 }
 
-export async function fetchDiagrams(params: {
-  q?: string;
-  sectionId?: string;
-  tag?: string;
-  language?: string;
-}): Promise<{ diagrams: DiagramListItemDto[]; total: number }> {
+export async function fetchDiagrams(
+  params: {
+    q?: string;
+    sectionId?: string;
+    tag?: string;
+    language?: string;
+  },
+  baseUrl?: string,
+): Promise<{ diagrams: DiagramListItemDto[]; total: number }> {
   const searchParams = new URLSearchParams();
   if (params.q) {
     searchParams.set("q", params.q);
@@ -89,21 +113,29 @@ export async function fetchDiagrams(params: {
   }
 
   const query = searchParams.toString();
-  return requestJson(`/diagrams${query ? `?${query}` : ""}`);
+  return requestJson(`/diagrams${query ? `?${query}` : ""}`, undefined, baseUrl);
 }
 
-export async function fetchDiagram(diagramId: string): Promise<DiagramDto> {
-  return requestJson(`/diagrams/${diagramId}`);
+export async function fetchDiagram(
+  diagramId: string,
+  baseUrl?: string,
+): Promise<DiagramDto> {
+  return requestJson(`/diagrams/${diagramId}`, undefined, baseUrl);
 }
 
 export async function createDiagram(
   payload: CreateDiagramPayload,
+  baseUrl?: string,
 ): Promise<DiagramDto> {
-  return requestJson("/diagrams", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+  return requestJson(
+    "/diagrams",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+    baseUrl,
+  );
 }
 
 export async function uploadDiagramFile(
@@ -115,6 +147,7 @@ export async function uploadDiagramFile(
     language?: string;
     sectionId?: string | null;
   },
+  baseUrl?: string,
 ): Promise<DiagramDto> {
   const formData = new FormData();
   formData.append("file", file);
@@ -134,19 +167,31 @@ export async function uploadDiagramFile(
     formData.append("sectionId", metadata.sectionId);
   }
 
-  return requestJson("/diagrams", {
-    method: "POST",
-    body: formData,
-  });
+  return requestJson(
+    "/diagrams",
+    {
+      method: "POST",
+      body: formData,
+    },
+    baseUrl,
+  );
 }
 
-export async function deleteDiagram(diagramId: string): Promise<void> {
-  await requestJson(`/diagrams/${diagramId}`, { method: "DELETE" });
+export async function deleteDiagram(
+  diagramId: string,
+  baseUrl?: string,
+): Promise<void> {
+  await requestJson(`/diagrams/${diagramId}`, { method: "DELETE" }, baseUrl);
 }
 
-export async function checkApiHealth(): Promise<boolean> {
+export async function checkApiHealth(baseUrl?: string): Promise<boolean> {
+  const resolved = baseUrl ?? getLibraryApiBaseUrl();
+  if (!resolved) {
+    return false;
+  }
+
   try {
-    const response = await fetch(`${API_BASE_URL}/health`);
+    const response = await fetch(`${resolved}/health`);
     return response.ok;
   } catch {
     return false;

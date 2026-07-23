@@ -8,6 +8,7 @@ import {
   type DiagramListItemDto,
   type SectionDto,
 } from "@/constants/diagram-library";
+import { useLibraryApiUrl } from "@/composables/useLibraryApiUrl";
 import {
   checkApiHealth,
   createDiagram,
@@ -21,17 +22,26 @@ import {
 } from "@/utils/diagram-api";
 import {
   buildSectionTree,
+  createLocalDiagram,
+  createLocalSection,
+  deleteLocalDiagram,
+  deleteLocalSection,
   getCacheMeta,
   loadDiagramDetailFromCache,
   loadDiagramsFromCache,
   loadSectionsFromCache,
+  reloadLocalLibraryState,
   saveDiagramDetailToCache,
   saveDiagramsToCache,
   saveSectionsToCache,
+  searchLocalLibrary,
   setCacheMeta,
 } from "@/utils/diagram-store";
+import { assertPumlFileSize, readFileAsText as readPumlFile } from "@/utils/puml-files";
 
 export function useDiagramLibrary() {
+  const { libraryApiUrl, isLocalMode } = useLibraryApiUrl();
+
   const sections = ref<SectionDto[]>([]);
   const flatSections = ref<SectionDto[]>([]);
   const diagrams = ref<DiagramListItemDto[]>([]);
@@ -51,6 +61,9 @@ export function useDiagramLibrary() {
   let searchDebounceTimer: ReturnType<typeof setTimeout> | undefined;
 
   const sectionTree = computed(() => buildSectionTree(flatSections.value));
+  const shouldUseServer = computed(
+    () => Boolean(libraryApiUrl.value) && isOnline.value,
+  );
 
   const allTags = computed(() => {
     const tags = new Set<string>();
@@ -66,6 +79,14 @@ export function useDiagramLibrary() {
     isOnline.value = navigator.onLine;
   }
 
+  async function applyLocalState(): Promise<void> {
+    const state = await reloadLocalLibraryState();
+    flatSections.value = state.flatSections;
+    sections.value = state.sections;
+    diagrams.value = state.diagrams;
+    usingCache.value = isLocalMode.value || !apiAvailable.value;
+  }
+
   async function loadFromCache(): Promise<void> {
     const [cachedSections, cachedDiagrams, syncedAt] = await Promise.all([
       loadSectionsFromCache(),
@@ -76,19 +97,20 @@ export function useDiagramLibrary() {
     if (cachedSections.length > 0) {
       flatSections.value = cachedSections;
       sections.value = buildSectionTree(cachedSections);
-      usingCache.value = true;
     }
 
     if (cachedDiagrams.length > 0) {
       diagrams.value = cachedDiagrams;
-      usingCache.value = true;
     }
 
+    usingCache.value = isLocalMode.value || cachedSections.length > 0;
     lastSyncedAt.value = syncedAt;
   }
 
   async function syncFromServer(): Promise<void> {
-    if (!navigator.onLine) {
+    if (!shouldUseServer.value) {
+      apiAvailable.value = false;
+      await applyLocalState();
       return;
     }
 
@@ -96,19 +118,24 @@ export function useDiagramLibrary() {
     errorMessage.value = "";
 
     try {
-      apiAvailable.value = await checkApiHealth();
+      apiAvailable.value = await checkApiHealth(libraryApiUrl.value);
       if (!apiAvailable.value) {
+        usingCache.value = true;
+        await applyLocalState();
         return;
       }
 
       const [sectionsResponse, diagramsResponse] = await Promise.all([
-        fetchSections(),
-        fetchDiagrams({
-          q: searchQuery.value.trim() || undefined,
-          sectionId: selectedSectionId.value ?? undefined,
-          tag: tagFilter.value.trim() || undefined,
-          language: languageFilter.value.trim() || undefined,
-        }),
+        fetchSections(libraryApiUrl.value),
+        fetchDiagrams(
+          {
+            q: searchQuery.value.trim() || undefined,
+            sectionId: selectedSectionId.value ?? undefined,
+            tag: tagFilter.value.trim() || undefined,
+            language: languageFilter.value.trim() || undefined,
+          },
+          libraryApiUrl.value,
+        ),
       ]);
 
       flatSections.value = sectionsResponse.flat;
@@ -125,6 +152,8 @@ export function useDiagramLibrary() {
       lastSyncedAt.value = syncedAt;
       usingCache.value = false;
     } catch (error) {
+      usingCache.value = true;
+      await applyLocalState();
       errorMessage.value =
         error instanceof Error ? error.message : "Sync failed";
     } finally {
@@ -134,7 +163,15 @@ export function useDiagramLibrary() {
 
   async function refresh(): Promise<void> {
     isLoading.value = true;
+    errorMessage.value = "";
     try {
+      if (isLocalMode.value) {
+        await applyLocalState();
+        usingCache.value = true;
+        apiAvailable.value = false;
+        return;
+      }
+
       await loadFromCache();
       await syncFromServer();
     } finally {
@@ -143,42 +180,39 @@ export function useDiagramLibrary() {
   }
 
   async function searchDiagrams(): Promise<void> {
-    if (!navigator.onLine || !apiAvailable.value) {
-      const query = searchQuery.value.trim().toLowerCase();
-      const sectionId = selectedSectionId.value;
-      const tag = tagFilter.value.trim().toLowerCase();
-      const language = languageFilter.value.trim();
-
-      const cached = await loadDiagramsFromCache();
-      diagrams.value = cached.filter((diagram) => {
-        if (sectionId && diagram.sectionId !== sectionId) {
-          return false;
-        }
-        if (language && diagram.language !== language) {
-          return false;
-        }
-        if (tag && !diagram.tags.some((item) => item.toLowerCase() === tag)) {
-          return false;
-        }
-        if (!query) {
-          return true;
-        }
-        return (
-          diagram.title.toLowerCase().includes(query) ||
-          diagram.description.toLowerCase().includes(query)
-        );
+    if (isLocalMode.value || !shouldUseServer.value || !apiAvailable.value) {
+      diagrams.value = await searchLocalLibrary({
+        q: searchQuery.value,
+        sectionId: selectedSectionId.value,
+        tag: tagFilter.value,
+        language: languageFilter.value,
       });
+      usingCache.value = true;
       return;
     }
 
-    const response = await fetchDiagrams({
-      q: searchQuery.value.trim() || undefined,
-      sectionId: selectedSectionId.value ?? undefined,
-      tag: tagFilter.value.trim() || undefined,
-      language: languageFilter.value.trim() || undefined,
-    });
-    diagrams.value = response.diagrams;
-    await saveDiagramsToCache(response.diagrams);
+    try {
+      const response = await fetchDiagrams(
+        {
+          q: searchQuery.value.trim() || undefined,
+          sectionId: selectedSectionId.value ?? undefined,
+          tag: tagFilter.value.trim() || undefined,
+          language: languageFilter.value.trim() || undefined,
+        },
+        libraryApiUrl.value,
+      );
+      diagrams.value = response.diagrams;
+      await saveDiagramsToCache(response.diagrams);
+      usingCache.value = false;
+    } catch {
+      diagrams.value = await searchLocalLibrary({
+        q: searchQuery.value,
+        sectionId: selectedSectionId.value,
+        tag: tagFilter.value,
+        language: languageFilter.value,
+      });
+      usingCache.value = true;
+    }
   }
 
   function scheduleSearch(): void {
@@ -199,21 +233,20 @@ export function useDiagramLibrary() {
   async function selectDiagram(diagramId: string): Promise<void> {
     isLoading.value = true;
     try {
-      if (navigator.onLine && apiAvailable.value) {
-        const diagram = await fetchDiagram(diagramId);
-        selectedDiagram.value = diagram;
-        await saveDiagramDetailToCache(diagram);
-        return;
+      if (shouldUseServer.value && apiAvailable.value) {
+        try {
+          const diagram = await fetchDiagram(diagramId, libraryApiUrl.value);
+          selectedDiagram.value = diagram;
+          await saveDiagramDetailToCache(diagram);
+          return;
+        } catch {
+          // fallback to local cache below
+        }
       }
 
       const cached = await loadDiagramDetailFromCache(diagramId);
       selectedDiagram.value = cached;
     } catch (error) {
-      const cached = await loadDiagramDetailFromCache(diagramId);
-      if (cached) {
-        selectedDiagram.value = cached;
-        return;
-      }
       errorMessage.value =
         error instanceof Error ? error.message : "Failed to load diagram";
     } finally {
@@ -222,22 +255,60 @@ export function useDiagramLibrary() {
   }
 
   async function addSection(payload: CreateSectionPayload): Promise<SectionDto> {
-    const section = await createSection(payload);
-    await refresh();
+    if (shouldUseServer.value) {
+      try {
+        const section = await createSection(payload, libraryApiUrl.value);
+        await refresh();
+        return section;
+      } catch {
+        // fallback to local storage
+      }
+    }
+
+    const section = await createLocalSection(payload);
+    await applyLocalState();
+    usingCache.value = true;
     return section;
   }
 
   async function removeSection(sectionId: string): Promise<void> {
-    await deleteSection(sectionId);
+    if (shouldUseServer.value && apiAvailable.value) {
+      try {
+        await deleteSection(sectionId, libraryApiUrl.value);
+        if (selectedSectionId.value === sectionId) {
+          selectedSectionId.value = null;
+        }
+        await refresh();
+        return;
+      } catch {
+        // fallback to local storage
+      }
+    }
+
+    await deleteLocalSection(sectionId);
     if (selectedSectionId.value === sectionId) {
       selectedSectionId.value = null;
     }
-    await refresh();
+    await applyLocalState();
+    await searchDiagrams();
+    usingCache.value = true;
   }
 
   async function addDiagram(payload: CreateDiagramPayload): Promise<DiagramDto> {
-    const diagram = await createDiagram(payload);
-    await refresh();
+    if (shouldUseServer.value) {
+      try {
+        const diagram = await createDiagram(payload, libraryApiUrl.value);
+        await refresh();
+        return diagram;
+      } catch {
+        // fallback to local storage
+      }
+    }
+
+    const diagram = await createLocalDiagram(payload);
+    await applyLocalState();
+    await searchDiagrams();
+    usingCache.value = true;
     return diagram;
   }
 
@@ -251,17 +322,61 @@ export function useDiagramLibrary() {
       sectionId?: string | null;
     },
   ): Promise<DiagramDto> {
-    const diagram = await uploadDiagramFile(file, metadata);
-    await refresh();
-    return diagram;
+    assertPumlFileSize(file);
+
+    if (shouldUseServer.value) {
+      try {
+        const diagram = await uploadDiagramFile(
+          file,
+          metadata,
+          libraryApiUrl.value,
+        );
+        await refresh();
+        return diagram;
+      } catch {
+        // fallback to local storage
+      }
+    }
+
+    const content = await readPumlFile(file);
+    const tags = metadata.tags ?? [];
+    const title =
+      metadata.title?.trim() ||
+      file.name.replace(/\.(puml|plantuml|txt)$/i, "") ||
+      "Diagram";
+
+    return addDiagram({
+      title,
+      description: metadata.description?.trim() ?? "",
+      tags,
+      language: (metadata.language as CreateDiagramPayload["language"]) ?? "plantuml",
+      sectionId: metadata.sectionId ?? null,
+      source: content,
+      fileName: file.name,
+    });
   }
 
   async function removeDiagram(diagramId: string): Promise<void> {
-    await deleteDiagram(diagramId);
+    if (shouldUseServer.value && apiAvailable.value) {
+      try {
+        await deleteDiagram(diagramId, libraryApiUrl.value);
+        if (selectedDiagram.value?.id === diagramId) {
+          selectedDiagram.value = null;
+        }
+        await refresh();
+        return;
+      } catch {
+        // fallback to local storage
+      }
+    }
+
+    await deleteLocalDiagram(diagramId);
     if (selectedDiagram.value?.id === diagramId) {
       selectedDiagram.value = null;
     }
-    await refresh();
+    await applyLocalState();
+    await searchDiagrams();
+    usingCache.value = true;
   }
 
   onMounted(() => {
@@ -283,6 +398,7 @@ export function useDiagramLibrary() {
     isLoading,
     isSyncing,
     isOnline,
+    isLocalMode,
     apiAvailable,
     usingCache,
     lastSyncedAt,

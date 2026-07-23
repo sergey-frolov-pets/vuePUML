@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref, watch } from "vue";
 import AppModal from "@/components/AppModal.vue";
 import { APP_LINKS, LAYOUT_ENGINES, type LayoutEngine } from "@/constants";
 import {
@@ -13,6 +14,7 @@ import {
   type AppLocale,
 } from "@/constants/i18n";
 import { useLocale } from "@/composables/useLocale";
+import { useLibraryApiUrl } from "@/composables/useLibraryApiUrl";
 
 defineProps<{
   open: boolean;
@@ -33,6 +35,17 @@ const emit = defineEmits<{
 }>();
 
 const { locale, setLocale, t } = useLocale();
+const { libraryApiUrl, setLibraryApiUrl } = useLibraryApiUrl();
+
+const libraryServerInput = ref(libraryApiUrl.value);
+
+watch(libraryApiUrl, (value) => {
+  libraryServerInput.value = value;
+});
+
+function onLibraryServerBlur(): void {
+  setLibraryApiUrl(libraryServerInput.value);
+}
 
 const layoutOptions = Object.entries(LAYOUT_ENGINES).map(([label, value]) => ({
   label,
@@ -158,6 +171,25 @@ const layoutOptions = Object.entries(LAYOUT_ENGINES).map(([label, value]) => ({
     </div>
 
     <div class="settings-section">
+      <h3 class="settings-section__title">{{ t("settings.library") }}</h3>
+
+      <label class="settings-field">
+        <span class="settings-field__label">{{ t("settings.libraryServer") }}</span>
+        <input
+          v-model="libraryServerInput"
+          class="select"
+          type="url"
+          inputmode="url"
+          autocomplete="off"
+          :placeholder="t('settings.libraryServerPlaceholder')"
+          @blur="onLibraryServerBlur"
+          @keydown.enter="onLibraryServerBlur"
+        />
+        <span class="settings-field__hint">{{ t("settings.libraryServerHint") }}</span>
+      </label>
+    </div>
+
+    <div class="settings-section">
       <h3 class="settings-section__title">{{ t("settings.help") }}</h3>
       <div class="settings-links">
         <button
@@ -216,6 +248,12 @@ const layoutOptions = Object.entries(LAYOUT_ENGINES).map(([label, value]) => ({
 .settings-field__label {
   font-size: 0.88rem;
   color: var(--text-muted);
+}
+
+.settings-field__hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.35;
 }
 
 .settings-field--checkbox {

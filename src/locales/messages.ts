@@ -42,6 +42,10 @@ export const ruMessages: LocaleMessages = {
   "settings.shareHelp": "Как передать .puml",
   "settings.plantumlGuide": "Справка PlantUML",
   "settings.about": "О программе",
+  "settings.library": "Библиотека",
+  "settings.libraryServer": "Адрес сервера библиотеки",
+  "settings.libraryServerHint": "Оставьте пустым для локальной библиотеки без сервера. Пример: https://example.com или http://localhost:3001",
+  "settings.libraryServerPlaceholder": "Пусто — только локально",
 
   "library.title": "Библиотека диаграмм",
   "library.sections": "Разделы",
@@ -75,6 +79,8 @@ export const ruMessages: LocaleMessages = {
   "library.deleteDiagramConfirm": "Удалить диаграмму «{title}»?",
   "library.sectionCreated": "Раздел создан",
   "library.emptyDescription": "Описание отсутствует",
+  "library.localMode": "Локальная библиотека (без сервера)",
+  "library.serverMode": "Сервер: {url}",
 };
 
 export const enMessages: LocaleMessages = {
@@ -117,6 +123,10 @@ export const enMessages: LocaleMessages = {
   "settings.shareHelp": "How to share .puml",
   "settings.plantumlGuide": "PlantUML guide",
   "settings.about": "About",
+  "settings.library": "Library",
+  "settings.libraryServer": "Library server URL",
+  "settings.libraryServerHint": "Leave empty for a local-only library without a server. Example: https://example.com or http://localhost:3001",
+  "settings.libraryServerPlaceholder": "Empty — local only",
 
   "library.title": "Diagram library",
   "library.sections": "Sections",
@@ -150,6 +160,8 @@ export const enMessages: LocaleMessages = {
   "library.deleteDiagramConfirm": "Delete diagram «{title}»?",
   "library.sectionCreated": "Section created",
   "library.emptyDescription": "No description",
+  "library.localMode": "Local library (no server)",
+  "library.serverMode": "Server: {url}",
 };
 
 export const messagesByLocale: Record<AppLocale, LocaleMessages> = {
