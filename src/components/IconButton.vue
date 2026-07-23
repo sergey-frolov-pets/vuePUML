@@ -19,7 +19,18 @@ const {
   onPointerUp,
   onPointerCancel,
   onPointerLeave,
+  consumeSuppressClick,
 } = useLongPressTooltip();
+
+function onClick(event: MouseEvent): void {
+  if (consumeSuppressClick()) {
+    event.preventDefault();
+    event.stopPropagation();
+    return;
+  }
+
+  emit("click", event);
+}
 </script>
 
 <template>
@@ -33,14 +44,13 @@ const {
     }"
     :disabled="disabled"
     :aria-label="label"
-    :title="label"
     :aria-pressed="pressed !== undefined ? pressed : undefined"
     @pointerdown="onPointerDown"
     @pointerup="onPointerUp"
     @pointercancel="onPointerCancel"
     @pointerleave="onPointerLeave"
     @contextmenu.prevent
-    @click="emit('click', $event)"
+    @click="onClick"
   >
     <slot />
     <span
@@ -56,7 +66,9 @@ const {
 <style scoped>
 .icon-btn {
   position: relative;
-  touch-action: manipulation;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .icon-btn--pressed {
