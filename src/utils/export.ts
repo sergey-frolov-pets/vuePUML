@@ -1,9 +1,7 @@
+import { normalizeColor } from "@/utils/color";
+
 const SVG_XMLNS = "http://www.w3.org/2000/svg";
 const LIGHT_SVG_FILLS = new Set(["#ffffff", "#fff", "white"]);
-
-function normalizeColor(value: string): string {
-  return value.trim().toLowerCase();
-}
 
 function transparentizeLightBackground(root: Element): void {
   for (const rect of root.querySelectorAll("rect")) {

@@ -1,15 +1,40 @@
 const SHARED_PUML_CACHE = "shared-puml-v1";
-const APP_SHELL_CACHE = "vueplantuml-shell-v1";
+const APP_SHELL_CACHE = "vueplantuml-shell-v2";
+const PRECACHE_URLS = ["./index.html", "./manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(self.skipWaiting());
+  event.waitUntil(
+    (async () => {
+      const cache = await caches.open(APP_SHELL_CACHE);
+      await cache.addAll(PRECACHE_URLS);
+
+      if (!self.registration.active) {
+        await self.skipWaiting();
+      }
+    })(),
+  );
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    (async () => {
+      const cacheNames = await caches.keys();
+      await Promise.all(
+        cacheNames
+          .filter((name) => name.startsWith("vueplantuml-shell-") && name !== APP_SHELL_CACHE)
+          .map((name) => caches.delete(name)),
+      );
+      await self.clients.claim();
+    })(),
+  );
 });
 
 self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") {
+    self.skipWaiting();
+    return;
+  }
+
   if (event.data?.type !== "GET_SHARED_PUML") {
     return;
   }
