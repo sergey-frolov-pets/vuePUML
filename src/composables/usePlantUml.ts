@@ -61,7 +61,9 @@ async function loadEmbeddedSource(elementId: string): Promise<string | null> {
 
 function runEmbeddedScript(source: string): void {
   const script = document.createElement("script");
-  script.text = source;
+  // Изолируем vendor-скрипты: без IIFE их let/const конфликтуют между собой
+  // (например, viz-global.js и plantuml.js из @plantuml/core).
+  script.text = `(function(){\n${source}\n})();`;
   document.head.appendChild(script);
 }
 
@@ -167,6 +169,17 @@ export async function renderPlantUmlToSvg(
 
 export function isVizGlobalReady(): boolean {
   return typeof window !== "undefined" && Boolean(window.Viz);
+}
+
+export function isPlantUmlEngineReady(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    Boolean(window.PlantUML?.renderToString)
+  );
+}
+
+export function isEngineReady(): boolean {
+  return isVizGlobalReady() && isPlantUmlEngineReady();
 }
 
 export async function waitForEngineReady(): Promise<void> {

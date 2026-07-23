@@ -35,7 +35,7 @@ import {
   type EditorFontSize,
 } from "@/constants/editor-settings";
 import {
-  isVizGlobalReady,
+  isEngineReady,
   renderPlantUmlToSvg,
   validatePlantUmlSyntax,
   waitForEngineReady,
@@ -444,7 +444,7 @@ onMounted(() => {
   void initializeIncomingSources();
   void waitForEngineReady()
     .then(() => {
-      engineReady.value = isVizGlobalReady();
+      engineReady.value = isEngineReady();
       engineStatus.value = engineReady.value
         ? t("app.engineReady")
         : t("app.error");
