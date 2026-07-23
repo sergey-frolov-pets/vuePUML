@@ -1,12 +1,26 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import DiagramToolbar from "@/components/DiagramToolbar.vue";
 import PanelFullscreenButton from "@/components/PanelFullscreenButton.vue";
+import type { LayoutEngine } from "@/constants";
 import { sanitizeSvgForPreview } from "@/utils/export";
 
 const props = defineProps<{
   svg: string;
   error: string;
   isRendering: boolean;
+  canExport: boolean;
+  layout: LayoutEngine;
+  previewBackground: string;
+  darkMode: boolean;
+}>();
+
+const emit = defineEmits<{
+  renderNow: [];
+  exportSvg: [];
+  exportPng: [];
+  "update:layout": [value: LayoutEngine];
+  "update:previewBackground": [value: string];
 }>();
 
 const isFullscreen = ref(false);
@@ -49,9 +63,21 @@ watch(isFullscreen, (value) => {
   >
     <PanelFullscreenButton :active="isFullscreen" @toggle="toggleFullscreen" />
 
-    <header class="panel-header">
+    <header class="panel-header preview-panel__header">
       <h2 class="panel-title">Предпросмотр</h2>
       <div class="preview-header-actions">
+        <DiagramToolbar
+          :is-rendering="isRendering"
+          :can-export="canExport"
+          :layout="layout"
+          :preview-background="previewBackground"
+          :dark-mode="darkMode"
+          @render-now="emit('renderNow')"
+          @export-svg="emit('exportSvg')"
+          @export-png="emit('exportPng')"
+          @update:layout="emit('update:layout', $event)"
+          @update:preview-background="emit('update:previewBackground', $event)"
+        />
         <span v-if="isRendering" class="status-pill">Рендеринг…</span>
       </div>
     </header>
@@ -71,10 +97,17 @@ watch(isFullscreen, (value) => {
 </template>
 
 <style scoped>
+.preview-panel__header {
+  align-items: flex-start;
+}
+
 .preview-header-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
+  justify-content: flex-end;
+  flex: 1;
+  min-width: 0;
 }
 </style>

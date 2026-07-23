@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import AppModal from "@/components/AppModal.vue";
-import { APP_LINKS, LAYOUT_ENGINES, type LayoutEngine } from "@/constants";
+import { APP_LINKS } from "@/constants";
 import {
-  DEFAULT_PREVIEW_BG,
   EDITOR_FONT_FAMILY_OPTIONS,
   EDITOR_FONT_SIZE_OPTIONS,
   type EditorFontFamilyId,
@@ -11,35 +10,19 @@ import {
 
 defineProps<{
   open: boolean;
-  layout: LayoutEngine;
   darkMode: boolean;
   editorFontSize: EditorFontSize;
   editorFontFamilyId: EditorFontFamilyId;
-  previewBackground: string;
 }>();
 
 const emit = defineEmits<{
   close: [];
-  "update:layout": [value: LayoutEngine];
   "update:darkMode": [value: boolean];
   "update:editorFontSize": [value: EditorFontSize];
   "update:editorFontFamilyId": [value: EditorFontFamilyId];
-  "update:previewBackground": [value: string];
   openShareHelp: [];
   openAbout: [];
 }>();
-
-const layoutOptions = Object.entries(LAYOUT_ENGINES).map(([label, value]) => ({
-  label,
-  value,
-}));
-
-function resetPreviewBackground(isDark: boolean): void {
-  emit(
-    "update:previewBackground",
-    isDark ? DEFAULT_PREVIEW_BG.dark : DEFAULT_PREVIEW_BG.light,
-  );
-}
 </script>
 
 <template>
@@ -93,7 +76,7 @@ function resetPreviewBackground(isDark: boolean): void {
     </div>
 
     <div class="settings-section">
-      <h3 class="settings-section__title">Предпросмотр и тема</h3>
+      <h3 class="settings-section__title">Тема интерфейса</h3>
 
       <label class="settings-field settings-field--checkbox">
         <input
@@ -106,69 +89,7 @@ function resetPreviewBackground(isDark: boolean): void {
             )
           "
         />
-        <span>Тёмная тема интерфейса и диаграммы</span>
-      </label>
-
-      <label class="settings-field">
-        <span class="settings-field__label">Фон предпросмотра</span>
-        <div class="color-input-row">
-          <input
-            class="color-input"
-            type="color"
-            :value="previewBackground"
-            @input="
-              emit(
-                'update:previewBackground',
-                ($event.target as HTMLInputElement).value,
-              )
-            "
-          />
-          <input
-            class="select color-text"
-            type="text"
-            :value="previewBackground"
-            spellcheck="false"
-            @change="
-              emit(
-                'update:previewBackground',
-                ($event.target as HTMLInputElement).value,
-              )
-            "
-          />
-          <button
-            class="btn"
-            type="button"
-            @click="resetPreviewBackground(darkMode)"
-          >
-            Сброс
-          </button>
-        </div>
-      </label>
-    </div>
-
-    <div class="settings-section">
-      <h3 class="settings-section__title">Рендеринг</h3>
-
-      <label class="settings-field">
-        <span class="settings-field__label">Движок раскладки</span>
-        <select
-          class="select"
-          :value="layout"
-          @change="
-            emit(
-              'update:layout',
-              ($event.target as HTMLSelectElement).value as LayoutEngine,
-            )
-          "
-        >
-          <option
-            v-for="option in layoutOptions"
-            :key="option.value"
-            :value="option.value"
-          >
-            {{ option.label }}
-          </option>
-        </select>
+        <span>Тёмная тема</span>
       </label>
     </div>
 
@@ -238,32 +159,6 @@ function resetPreviewBackground(isDark: boolean): void {
   align-items: center;
   gap: 10px;
   color: var(--text);
-}
-
-.color-input-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-}
-
-.color-input {
-  width: 48px;
-  height: 40px;
-  padding: 2px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  cursor: pointer;
-}
-
-.color-text {
-  flex: 1;
-  min-width: 120px;
-  min-height: 40px;
-  padding: 0 10px;
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
 }
 
 .settings-links {

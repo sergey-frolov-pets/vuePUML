@@ -3,7 +3,6 @@ import { computed, onMounted, ref, watch } from "vue";
 import AboutModal from "@/components/AboutModal.vue";
 import DiagramEditor from "@/components/DiagramEditor.vue";
 import DiagramPreview from "@/components/DiagramPreview.vue";
-import DiagramToolbar from "@/components/DiagramToolbar.vue";
 import InstallAppButton from "@/components/InstallAppButton.vue";
 import SettingsModal from "@/components/SettingsModal.vue";
 import ShareHelpModal from "@/components/ShareHelpModal.vue";
@@ -435,24 +434,18 @@ onMounted(() => {
         @cleared="onEditorCleared"
       />
 
-      <section class="panel">
-        <header class="panel-header">
-          <h2 class="panel-title">Экспорт</h2>
-          <DiagramToolbar
-            :is-rendering="isRendering"
-            :can-export="canExport"
-            @render-now="renderDiagram"
-            @export-svg="exportSvg"
-            @export-png="exportPng"
-          />
-        </header>
-
-        <DiagramPreview
-          :svg="svg"
-          :error="error"
-          :is-rendering="isRendering"
-        />
-      </section>
+      <DiagramPreview
+        :svg="svg"
+        :error="error"
+        :is-rendering="isRendering"
+        :can-export="canExport"
+        v-model:layout="layout"
+        v-model:preview-background="previewBackground"
+        :dark-mode="darkMode"
+        @render-now="renderDiagram"
+        @export-svg="exportSvg"
+        @export-png="exportPng"
+      />
     </main>
 
     <footer class="status-bar">
@@ -477,11 +470,9 @@ onMounted(() => {
 
     <SettingsModal
       :open="isSettingsModalOpen"
-      v-model:layout="layout"
       v-model:dark-mode="darkMode"
       v-model:editor-font-size="editorFontSize"
       v-model:editor-font-family-id="editorFontFamilyId"
-      v-model:preview-background="previewBackground"
       @close="isSettingsModalOpen = false"
       @open-share-help="openShareHelpFromSettings"
       @open-about="openAboutFromSettings"
