@@ -1,0 +1,13 @@
+{
+  "name": "vuePlantUML",
+  "short_name": "PlantUML",
+  "description": "Кросс-платформенный офлайн генератор PlantUML диаграмм",
+  "id": "./",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f4f6f8",
+  "theme_color": "#0f6cbd",
+  "lang": "ru"
+}

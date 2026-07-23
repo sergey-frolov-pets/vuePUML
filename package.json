@@ -1,0 +1,31 @@
+{
+  "name": "vueplantuml-app",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Vue.js PlantUML diagram generator with Smetana layout — works offline via file:// on Android",
+  "scripts": {
+    "dev": "vite",
+    "prebuild": "node scripts/copy-vendor.mjs && node scripts/generate-pwa-icons.mjs",
+    "build": "vue-tsc --noEmit && vite build && node scripts/build-single-html.mjs",
+    "build:minimal": "vue-tsc --noEmit && vite build && node scripts/build-minimal.mjs",
+    "build:single": "vue-tsc --noEmit && vite build && node scripts/build-single-only.mjs",
+    "preview": "vite preview",
+    "postinstall": "node scripts/copy-vendor.mjs && node scripts/generate-pwa-icons.mjs"
+  },
+  "dependencies": {
+    "@plantuml/core": "^1.2026.6",
+    "vue": "^3.5.13"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "sharp": "^0.34.3",
+    "typescript": "~5.7.2",
+    "vite": "^6.0.7",
+    "vue-tsc": "^2.2.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
