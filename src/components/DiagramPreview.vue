@@ -56,14 +56,15 @@ watch(isFullscreen, (value) => {
 
 <template>
   <section
-    class="panel preview-panel panel--corner-controls"
+    class="panel preview-panel"
     :class="{ 'is-fullscreen': isFullscreen }"
   >
-    <PanelFullscreenButton :active="isFullscreen" @toggle="toggleFullscreen" />
-
-    <header class="panel-header preview-panel__header">
-      <h2 class="panel-title">Предпросмотр</h2>
-      <div class="preview-header-actions">
+    <header class="panel-header">
+      <div class="panel-header__top">
+        <h2 class="panel-title" title="Предпросмотр">Просмотр</h2>
+        <PanelFullscreenButton :active="isFullscreen" @toggle="toggleFullscreen" />
+      </div>
+      <div class="panel-header__toolbar preview-header-actions">
         <DiagramToolbar
           :is-rendering="isRendering"
           :can-export="canExport"
@@ -75,7 +76,7 @@ watch(isFullscreen, (value) => {
           @update:preview-background="emit('update:previewBackground', $event)"
           @update:diagram-dark-mode="emit('update:diagramDarkMode', $event)"
         />
-        <span v-if="isRendering" class="status-pill">Рендеринг…</span>
+        <span v-if="isRendering" class="status-pill status-pill--compact">…</span>
       </div>
     </header>
 
@@ -94,24 +95,15 @@ watch(isFullscreen, (value) => {
 </template>
 
 <style scoped>
-.preview-panel__header {
-  align-items: center;
-  flex-wrap: nowrap;
-}
-
 .preview-header-actions {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 6px;
-  align-items: center;
-  justify-content: flex-end;
-  flex: 1;
-  min-width: 0;
-  flex-shrink: 0;
+  display: contents;
 }
 
-.preview-header-actions .status-pill {
+.preview-header-actions .status-pill--compact {
   flex-shrink: 0;
-  white-space: nowrap;
+  min-width: 32px;
+  padding: 0 8px;
+  font-size: 0.9rem;
+  line-height: 32px;
 }
 </style>

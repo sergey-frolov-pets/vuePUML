@@ -11,7 +11,7 @@ const emit = defineEmits<{
 <template>
   <button
     type="button"
-    class="panel-corner-btn btn"
+    class="btn btn-icon panel-header__fullscreen"
     :aria-label="active ? 'Свернуть' : 'На весь экран'"
     :title="active ? 'Свернуть' : 'На весь экран'"
     :aria-pressed="active"
@@ -19,7 +19,7 @@ const emit = defineEmits<{
   >
     <svg
       v-if="!active"
-      class="panel-corner-btn__icon"
+      class="panel-header__fullscreen-icon"
       viewBox="0 0 24 24"
       aria-hidden="true"
     >
@@ -34,11 +34,11 @@ const emit = defineEmits<{
     </svg>
     <svg
       v-else
-      class="panel-corner-btn__icon"
+      class="panel-header__fullscreen-icon"
       viewBox="0 0 24 24"
       aria-hidden="true"
     >
-      <rect x="9" y="9" width="6" height="6" fill="#000000" />
+      <rect x="9" y="9" width="6" height="6" fill="currentColor" />
     </svg>
   </button>
 </template>
