@@ -1,3 +1,4 @@
+import { MAX_PUML_FILE_BYTES } from "@/constants/diagram-library";
 import { downloadTextFile } from "@/utils/export";
 
 export const PUML_MIME_TYPE = "application/vnd.plantuml";
@@ -37,10 +38,18 @@ export function sanitizeFileName(fileName: string): string {
   return trimmed.replace(/[\\/:*?"<>|]+/g, "_");
 }
 
+export function assertPumlFileSize(file: File, maxBytes = MAX_PUML_FILE_BYTES): void {
+  if (file.size > maxBytes) {
+    const maxKb = Math.round(maxBytes / 1024);
+    throw new Error(`Файл слишком большой. Максимум ${maxKb} КБ`);
+  }
+}
+
 export async function loadPumlFromFile(file: File): Promise<{
   content: string;
   fileName: string;
 }> {
+  assertPumlFileSize(file);
   const content = await readFileAsText(file);
   if (!content.trim()) {
     throw new Error("Файл пустой");

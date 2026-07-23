@@ -2,3 +2,6 @@ node_modules/
 dist/
 dist-single/
 public/vendor/
+data/
+server/node_modules/
+server/dist/
