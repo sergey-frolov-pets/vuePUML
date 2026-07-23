@@ -11,6 +11,7 @@ const installTitle = "Установить приложение";
   <button
     v-if="canShowInstallButton"
     class="btn install-app-btn"
+    :class="{ 'install-app-btn--waiting': !canInstallNow }"
     type="button"
     :aria-label="installTitle"
     :title="installTitle"
@@ -65,8 +66,16 @@ const installTitle = "Установить приложение";
 }
 
 .install-app-btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.install-app-btn:not(:disabled):not(:hover) {
+  opacity: 1;
+}
+
+.install-app-btn--waiting {
+  opacity: 0.75;
 }
 
 .install-app-btn__icon {
