@@ -216,7 +216,7 @@ watch(
         <h2 class="panel-title" title="Исходный код PlantUML">Код</h2>
         <PanelFullscreenButton :active="isFullscreen" @toggle="toggleFullscreen" />
       </div>
-      <div class="panel-header__toolbar header-actions">
+      <div class="panel-header__toolbar">
         <IconButton label="Открыть .puml" @click="openFilePicker">
           <ActionIcon name="folder-open" />
         </IconButton>
@@ -328,10 +328,6 @@ watch(
 </template>
 
 <style scoped>
-.header-actions {
-  display: contents;
-}
-
 .sample-select-wrap {
   display: inline-flex;
   flex-shrink: 0;
