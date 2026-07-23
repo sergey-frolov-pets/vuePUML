@@ -498,33 +498,29 @@ onMounted(() => {
 
     <footer class="status-bar">
       <span>Файл: {{ loadedFileName }}</span>
-      <span>Движок: {{ layout }}</span>
-      <span
-        v-if="engineReady"
-        class="status-bar__engine-ok"
-        aria-label="Движок готов"
-        title="Движок готов"
-      >
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <circle
-            cx="12"
-            cy="12"
-            r="10"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          />
-          <path
-            d="M8.5 12.2 10.8 14.5 15.8 9.5"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
+      <span class="status-bar__engine">
+        <span>Движок: {{ layout }}</span>
+        <span
+          v-if="engineReady"
+          class="status-bar__engine-ok"
+          aria-label="Движок готов"
+          title="Движок готов"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M6 12.5 10 16.5 18 7.5"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </span>
+        <span v-else class="status-pill is-error status-pill--inline">{{
+          engineStatus
+        }}</span>
       </span>
-      <span v-else class="status-pill is-error">{{ engineStatus }}</span>
       <span class="status-bar__copyright">{{ APP_META.copyright }}</span>
     </footer>
 
