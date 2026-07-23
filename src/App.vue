@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { onMounted, ref, watch } from "vue";
 import AboutModal from "@/components/AboutModal.vue";
 import AppDialogHost from "@/components/AppDialogHost.vue";
 import DiagramEditor from "@/components/DiagramEditor.vue";
@@ -9,407 +9,97 @@ import UpdateAppButton from "@/components/UpdateAppButton.vue";
 import SettingsModal from "@/components/SettingsModal.vue";
 import ShareHelpModal from "@/components/ShareHelpModal.vue";
 import SyntaxResultModal from "@/components/SyntaxResultModal.vue";
+import { APP_META, DEFAULT_SOURCE, LAYOUT_ENGINES } from "@/constants";
+import { useAppSettings } from "@/composables/useAppSettings";
+import { useDiagramExport } from "@/composables/useDiagramExport";
+import { useDiagramRender } from "@/composables/useDiagramRender";
 import {
-  APP_META,
-  DEFAULT_SOURCE,
-  LAYOUT_ENGINES,
-  RENDER_DEBOUNCE_MS,
-  STORAGE_KEY_DARK,
-  STORAGE_KEY_DIAGRAM_DARK,
-  STORAGE_KEY_LAYOUT,
-  STORAGE_KEY_UI_DARK,
-  STORAGE_KEY_SOURCE,
-  type LayoutEngine,
-} from "@/constants";
-import {
-  DEFAULT_EDITOR_FONT_FAMILY_ID,
-  DEFAULT_EDITOR_FONT_SIZE,
-  DEFAULT_PREVIEW_BG,
-  isEditorFontFamilyId,
-  isEditorFontSize,
-  resolveEditorFontFamily,
-  STORAGE_KEY_EDITOR_FONT_FAMILY,
-  STORAGE_KEY_EDITOR_FONT_SIZE,
-  STORAGE_KEY_PREVIEW_BG,
-  type EditorFontFamilyId,
-  type EditorFontSize,
-} from "@/constants/editor-settings";
-import {
-  isVizGlobalReady,
-  renderPlantUmlToSvg,
-  validatePlantUmlSyntax,
-  waitForEngineReady,
-} from "@/composables/usePlantUml";
-import {
-  consumeSharedLaunch,
-  setupLaunchQueue,
-} from "@/composables/usePumlShare";
-import { useAppDialog } from "@/composables/useAppDialog";
-import {
-  applyLayoutPragma,
-  splitSourceLines,
-} from "@/utils/plantuml-source";
-import {
-  downloadBlob,
-  downloadTextFile,
-  svgToPngBlob,
-} from "@/utils/export";
-import { savePumlSource, resolvePumlFileName } from "@/utils/puml-files";
-import type { SyntaxCheckResult } from "@/utils/plantuml-syntax";
+  useImportErrorDialog,
+  useIncomingPuml,
+} from "@/composables/useIncomingPuml";
+import { useSyntaxCheck } from "@/composables/useSyntaxCheck";
 
 const source = ref(DEFAULT_SOURCE);
-const layout = ref<LayoutEngine>(LAYOUT_ENGINES.smetana);
-function readStoredBoolean(key: string): boolean | null {
-  try {
-    const saved = localStorage.getItem(key);
-    if (saved !== null) {
-      return saved === "true";
-    }
-  } catch {
-    // file:// может блокировать localStorage
-  }
+const layout = ref(LAYOUT_ENGINES.smetana);
 
-  return null;
-}
-
-function readInitialUiDarkMode(): boolean {
-  return (
-    readStoredBoolean(STORAGE_KEY_UI_DARK) ??
-    readStoredBoolean(STORAGE_KEY_DARK) ??
-    window.matchMedia("(prefers-color-scheme: dark)").matches
-  );
-}
-
-function readInitialDiagramDarkMode(): boolean {
-  return (
-    readStoredBoolean(STORAGE_KEY_DIAGRAM_DARK) ??
-    readStoredBoolean(STORAGE_KEY_DARK) ??
-    window.matchMedia("(prefers-color-scheme: dark)").matches
-  );
-}
-
-const uiDarkMode = ref(readInitialUiDarkMode());
-const diagramDarkMode = ref(readInitialDiagramDarkMode());
-const editorFontSize = ref<EditorFontSize>(readInitialEditorFontSize());
-const editorFontFamilyId = ref<EditorFontFamilyId>(readInitialEditorFontFamilyId());
-const previewBackground = ref(readInitialPreviewBackground(diagramDarkMode.value));
-const editorFontFamily = computed(() =>
-  resolveEditorFontFamily(editorFontFamilyId.value),
-);
-const svg = ref("");
-const error = ref("");
-const isRendering = ref(false);
-const isValidating = ref(false);
-const engineReady = ref(false);
-const engineStatus = ref("Загрузка движка PlantUML...");
-const loadedFileName = ref("diagram.puml");
-const syntaxResult = ref<SyntaxCheckResult | null>(null);
-const syntaxErrorLines = ref<number[]>([]);
-const isSyntaxModalOpen = ref(false);
 const isSettingsModalOpen = ref(false);
 const isAboutModalOpen = ref(false);
 const isShareHelpModalOpen = ref(false);
 
-const { prompt, alert } = useAppDialog();
+const settings = useAppSettings({ source, layout });
+const {
+  uiDarkMode,
+  diagramDarkMode,
+  editorFontSize,
+  editorFontFamilyId,
+  editorFontFamily,
+  previewBackground,
+  persistSettings,
+  restoreSettings,
+} = settings;
 
-let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+const render = useDiagramRender({
+  source,
+  layout,
+  diagramDarkMode,
+  onPersist: persistSettings,
+});
+const {
+  svg,
+  error: renderError,
+  isRendering,
+  engineReady,
+  engineStatus,
+  renderDiagram,
+  scheduleRender,
+  clearRenderError,
+  bootEngine,
+} = render;
 
-const canExport = computed(() => Boolean(svg.value) && !error.value && !isRendering.value);
-const canSave = computed(() => Boolean(source.value.trim()));
+const syntax = useSyntaxCheck({
+  source,
+  layout,
+  diagramDarkMode,
+});
+const {
+  syntaxResult,
+  syntaxErrorLines,
+  isValidating,
+  isSyntaxModalOpen,
+  validateSyntax,
+  closeSyntaxModal,
+  clearSyntaxHighlights,
+} = syntax;
 
-function readInitialEditorFontSize(): EditorFontSize {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY_EDITOR_FONT_SIZE);
-    if (saved && isEditorFontSize(saved)) {
-      return saved;
-    }
-  } catch {
-    // file:// может блокировать localStorage
-  }
-
-  return DEFAULT_EDITOR_FONT_SIZE;
-}
-
-function readInitialEditorFontFamilyId(): EditorFontFamilyId {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY_EDITOR_FONT_FAMILY);
-    if (saved && isEditorFontFamilyId(saved)) {
-      return saved;
-    }
-  } catch {
-    // file:// может блокировать localStorage
-  }
-
-  return DEFAULT_EDITOR_FONT_FAMILY_ID;
-}
-
-function normalizeColor(value: string): string {
-  return value.trim().toLowerCase();
-}
-
-function readInitialPreviewBackground(isDark: boolean): string {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY_PREVIEW_BG);
-    if (saved) {
-      const normalized = normalizeColor(saved);
-      if (isDark && normalized === normalizeColor(DEFAULT_PREVIEW_BG.light)) {
-        return DEFAULT_PREVIEW_BG.dark;
-      }
-      if (!isDark && normalized === normalizeColor(DEFAULT_PREVIEW_BG.dark)) {
-        return DEFAULT_PREVIEW_BG.light;
-      }
-      return saved;
-    }
-  } catch {
-    // file:// может блокировать localStorage
-  }
-
-  return isDark ? DEFAULT_PREVIEW_BG.dark : DEFAULT_PREVIEW_BG.light;
-}
-
-function persistSettings(): void {
-  try {
-    localStorage.setItem(STORAGE_KEY_SOURCE, source.value);
-    localStorage.setItem(STORAGE_KEY_UI_DARK, String(uiDarkMode.value));
-    localStorage.setItem(
-      STORAGE_KEY_DIAGRAM_DARK,
-      String(diagramDarkMode.value),
-    );
-    localStorage.setItem(STORAGE_KEY_LAYOUT, layout.value);
-    localStorage.setItem(STORAGE_KEY_EDITOR_FONT_SIZE, editorFontSize.value);
-    localStorage.setItem(STORAGE_KEY_EDITOR_FONT_FAMILY, editorFontFamilyId.value);
-    localStorage.setItem(STORAGE_KEY_PREVIEW_BG, previewBackground.value);
-  } catch {
-    // file:// может блокировать localStorage
-  }
-}
-
-function restoreSettings(): void {
-  try {
-    const savedSource = localStorage.getItem(STORAGE_KEY_SOURCE);
-    const savedLayout = localStorage.getItem(STORAGE_KEY_LAYOUT);
-
-    if (savedSource) {
-      source.value = savedSource;
-    }
-
-    if (savedLayout && savedLayout in LAYOUT_ENGINES) {
-      layout.value = savedLayout as LayoutEngine;
-    }
-  } catch {
-    // file:// может блокировать localStorage
-  }
-}
-
-async function renderDiagram(): Promise<void> {
-  if (!engineReady.value) {
-    error.value = "Движок PlantUML ещё не загружен";
-    return;
-  }
-
-  isRendering.value = true;
-  error.value = "";
-
-  try {
-    const prepared = applyLayoutPragma(source.value, layout.value);
-    const lines = splitSourceLines(prepared);
-    const result = await renderPlantUmlToSvg(lines, {
-      dark: diagramDarkMode.value,
-    });
-    svg.value = result;
-  } catch (renderError) {
-    svg.value = "";
-    error.value =
-      renderError instanceof Error
-        ? renderError.message
-        : "Неизвестная ошибка рендеринга";
-  } finally {
-    isRendering.value = false;
-  }
-}
-
-function applyLoadedSource(content: string, fileName: string): void {
-  source.value = content;
-  loadedFileName.value = fileName;
-  error.value = "";
-  syntaxErrorLines.value = [];
+const incoming = useIncomingPuml((payload) => {
+  source.value = payload.content;
+  clearSyntaxHighlights();
+  clearRenderError();
   persistSettings();
   scheduleRender();
-}
+});
+const { loadedFileName, initializeIncomingSources, notifyLoaded, resetLoadedFileName } =
+  incoming;
 
-function onFileLoaded(payload: { content: string; fileName: string }): void {
-  applyLoadedSource(payload.content, payload.fileName);
-}
+const exportApi = useDiagramExport({
+  source,
+  svg,
+  previewBackground,
+  loadedFileName,
+  error: renderError,
+  isRendering,
+});
+const { canSave, canExport, savePuml, exportSvg, exportPng } = exportApi;
 
-function onImportError(message: string): void {
-  void alert({
-    title: "Ошибка импорта",
-    message,
-    variant: "error",
-  });
-}
+const { showImportError } = useImportErrorDialog();
 
 function onEditorCleared(): void {
-  loadedFileName.value = "diagram.puml";
-  syntaxErrorLines.value = [];
-  error.value = "";
+  resetLoadedFileName();
+  clearSyntaxHighlights();
+  clearRenderError();
   persistSettings();
   scheduleRender();
 }
-
-async function initializeIncomingSources(): Promise<void> {
-  setupLaunchQueue((payload) => {
-    applyLoadedSource(payload.content, payload.fileName);
-  });
-
-  const shared = await consumeSharedLaunch();
-  if (shared) {
-    applyLoadedSource(shared.content, shared.fileName);
-  }
-}
-
-function scheduleRender(): void {
-  if (debounceTimer) {
-    clearTimeout(debounceTimer);
-  }
-
-  debounceTimer = setTimeout(() => {
-    void renderDiagram();
-  }, RENDER_DEBOUNCE_MS);
-}
-
-function updateSyntaxHighlights(result: SyntaxCheckResult | null): void {
-  if (!result || result.valid) {
-    syntaxErrorLines.value = [];
-    return;
-  }
-
-  syntaxErrorLines.value = [
-    ...new Set(
-      result.issues
-        .map((issue) => issue.line)
-        .filter((line): line is number => typeof line === "number"),
-    ),
-  ];
-}
-
-async function savePuml(): Promise<void> {
-  if (!canSave.value) {
-    return;
-  }
-
-  const fileName = await prompt({
-    title: "Сохранить .puml",
-    message: "Имя файла",
-    value: loadedFileName.value,
-    confirmLabel: "Сохранить",
-    placeholder: "diagram.puml",
-  });
-
-  if (fileName === null) {
-    return;
-  }
-
-  const resolvedName = resolvePumlFileName(fileName);
-  loadedFileName.value = resolvedName;
-  savePumlSource(source.value, resolvedName);
-}
-
-async function validateSyntax(): Promise<void> {
-  isSyntaxModalOpen.value = true;
-  isValidating.value = true;
-  syntaxResult.value = null;
-
-  try {
-    const result = await validatePlantUmlSyntax(
-      source.value,
-      layout.value,
-      diagramDarkMode.value,
-    );
-    syntaxResult.value = result;
-    updateSyntaxHighlights(result);
-  } finally {
-    isValidating.value = false;
-  }
-}
-
-function closeSyntaxModal(): void {
-  isSyntaxModalOpen.value = false;
-}
-
-function exportSvg(): void {
-  if (!svg.value) {
-    return;
-  }
-  downloadTextFile(svg.value, "diagram.svg", "image/svg+xml;charset=utf-8");
-}
-
-async function exportPng(): Promise<void> {
-  if (!svg.value) {
-    return;
-  }
-
-  try {
-    const background = previewBackground.value;
-    const pngBlob = await svgToPngBlob(svg.value, background);
-    downloadBlob(pngBlob, "diagram.png");
-  } catch (exportError) {
-    const message =
-      exportError instanceof Error
-        ? exportError.message
-        : "Не удалось экспортировать PNG";
-    void alert({
-      title: "Ошибка экспорта",
-      message,
-      variant: "error",
-    });
-  }
-}
-
-watch(
-  uiDarkMode,
-  (isDark) => {
-    document.documentElement.dataset.theme = isDark ? "dark" : "light";
-  },
-  { immediate: true },
-);
-
-watch(
-  diagramDarkMode,
-  (isDark, wasDark) => {
-    if (wasDark === undefined || wasDark === isDark) {
-      return;
-    }
-
-    previewBackground.value = isDark
-      ? DEFAULT_PREVIEW_BG.dark
-      : DEFAULT_PREVIEW_BG.light;
-  },
-  { immediate: true },
-);
-
-watch(
-  previewBackground,
-  (value) => {
-    document.documentElement.style.setProperty("--preview-bg", value);
-  },
-  { immediate: true },
-);
-
-watch([source, layout, diagramDarkMode], () => {
-  persistSettings();
-  scheduleRender();
-});
-
-watch([editorFontSize, editorFontFamilyId, previewBackground, uiDarkMode], () => {
-  persistSettings();
-});
-
-watch(source, () => {
-  if (syntaxErrorLines.value.length > 0) {
-    syntaxErrorLines.value = [];
-  }
-});
 
 function openSettingsModal(): void {
   isSettingsModalOpen.value = true;
@@ -425,25 +115,15 @@ function openAboutFromSettings(): void {
   isAboutModalOpen.value = true;
 }
 
+watch([source, layout, diagramDarkMode], () => {
+  persistSettings();
+  scheduleRender();
+});
+
 onMounted(() => {
   restoreSettings();
   void initializeIncomingSources();
-  void waitForEngineReady()
-    .then(() => {
-      engineReady.value = isVizGlobalReady();
-      engineStatus.value = engineReady.value
-        ? "Движок готов"
-        : "Движок не инициализировался";
-      scheduleRender();
-    })
-    .catch((bootError) => {
-      engineReady.value = false;
-      engineStatus.value =
-        bootError instanceof Error
-          ? bootError.message
-          : "Ошибка загрузки движка";
-      error.value = engineStatus.value;
-    });
+  void bootEngine();
 });
 </script>
 
@@ -478,8 +158,8 @@ onMounted(() => {
         :can-save="canSave"
         :is-validating="isValidating"
         :is-rendering="isRendering"
-        @file-loaded="onFileLoaded"
-        @import-error="onImportError"
+        @file-loaded="notifyLoaded"
+        @import-error="showImportError"
         @save-puml="savePuml"
         @validate-syntax="validateSyntax"
         @cleared="onEditorCleared"
@@ -487,7 +167,7 @@ onMounted(() => {
 
       <DiagramPreview
         :svg="svg"
-        :error="error"
+        :error="renderError"
         :is-rendering="isRendering"
         :can-export="canExport"
         v-model:preview-background="previewBackground"

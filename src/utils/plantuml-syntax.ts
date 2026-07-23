@@ -205,3 +205,19 @@ export function formatSyntaxIssues(issues: SyntaxIssue[]): string {
     })
     .join("\n");
 }
+
+export function extractSyntaxErrorLines(
+  result: SyntaxCheckResult | null,
+): number[] {
+  if (!result || result.valid) {
+    return [];
+  }
+
+  return [
+    ...new Set(
+      result.issues
+        .map((issue) => issue.line)
+        .filter((line): line is number => typeof line === "number"),
+    ),
+  ].sort((left, right) => left - right);
+}

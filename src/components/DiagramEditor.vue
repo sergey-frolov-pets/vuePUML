@@ -1,18 +1,19 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import ActionIcon from "@/components/icons/ActionIcon.vue";
 import FileBadgeIcon from "@/components/icons/FileBadgeIcon.vue";
 import IconButton from "@/components/IconButton.vue";
 import TooltipWrap from "@/components/TooltipWrap.vue";
 import PanelFullscreenButton from "@/components/PanelFullscreenButton.vue";
-import { isSampleDiagramSource, SAMPLE_DIAGRAMS } from "@/constants";
 import { useAppDialog } from "@/composables/useAppDialog";
-import type { EditorFontSize } from "@/constants/editor-settings";
+import { usePanelFullscreen } from "@/composables/usePanelFullscreen";
+import { isSampleDiagramSource, SAMPLE_DIAGRAMS } from "@/constants";
 import {
   loadPumlFromFile,
   PUML_FILE_ACCEPT,
   resolvePumlFileName,
 } from "@/utils/puml-files";
+import type { EditorFontSize } from "@/constants/editor-settings";
 
 const EDITOR_LINE_HEIGHT = 1.45;
 const EDITOR_PADDING = "12px";
@@ -42,7 +43,7 @@ const textareaRef = ref<HTMLTextAreaElement | null>(null);
 const gutterRef = ref<HTMLTextAreaElement | null>(null);
 const highlightsRef = ref<HTMLDivElement | null>(null);
 const isDragOver = ref(false);
-const isFullscreen = ref(false);
+const { isFullscreen, toggleFullscreen } = usePanelFullscreen();
 
 const { confirm } = useAppDialog();
 
@@ -180,29 +181,6 @@ function syncScroll(): void {
     highlightsRef.value.scrollLeft = textarea.scrollLeft;
   }
 }
-
-function toggleFullscreen(): void {
-  isFullscreen.value = !isFullscreen.value;
-}
-
-function onFullscreenKeydown(event: KeyboardEvent): void {
-  if (event.key === "Escape" && isFullscreen.value) {
-    isFullscreen.value = false;
-  }
-}
-
-watch(isFullscreen, (value) => {
-  document.body.style.overflow = value ? "hidden" : "";
-});
-
-onMounted(() => {
-  window.addEventListener("keydown", onFullscreenKeydown);
-});
-
-onUnmounted(() => {
-  window.removeEventListener("keydown", onFullscreenKeydown);
-  document.body.style.overflow = "";
-});
 
 watch(
   () => source.value,

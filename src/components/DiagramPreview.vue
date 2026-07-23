@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed } from "vue";
 import DiagramToolbar from "@/components/DiagramToolbar.vue";
 import PanelFullscreenButton from "@/components/PanelFullscreenButton.vue";
+import { usePanelFullscreen } from "@/composables/usePanelFullscreen";
 import { sanitizeSvgForPreview } from "@/utils/export";
 
 const props = defineProps<{
@@ -21,36 +22,13 @@ const emit = defineEmits<{
   "update:diagramDarkMode": [value: boolean];
 }>();
 
-const isFullscreen = ref(false);
+const { isFullscreen, toggleFullscreen } = usePanelFullscreen();
 
 const previewMarkup = computed(() => {
   if (!props.svg) {
     return "";
   }
   return sanitizeSvgForPreview(props.svg);
-});
-
-function toggleFullscreen(): void {
-  isFullscreen.value = !isFullscreen.value;
-}
-
-function onFullscreenKeydown(event: KeyboardEvent): void {
-  if (event.key === "Escape" && isFullscreen.value) {
-    isFullscreen.value = false;
-  }
-}
-
-onMounted(() => {
-  window.addEventListener("keydown", onFullscreenKeydown);
-});
-
-onUnmounted(() => {
-  window.removeEventListener("keydown", onFullscreenKeydown);
-  document.body.style.overflow = "";
-});
-
-watch(isFullscreen, (value) => {
-  document.body.style.overflow = value ? "hidden" : "";
 });
 </script>
 

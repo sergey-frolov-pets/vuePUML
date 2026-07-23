@@ -48,10 +48,20 @@ function onControllerChange(): void {
   window.location.reload();
 }
 
+let updateCheckTimer: ReturnType<typeof setTimeout> | undefined;
+
 function onVisibilityChange(): void {
-  if (document.visibilityState === "visible") {
-    void checkForUpdateSilently();
+  if (document.visibilityState !== "visible") {
+    return;
   }
+
+  if (updateCheckTimer) {
+    clearTimeout(updateCheckTimer);
+  }
+
+  updateCheckTimer = setTimeout(() => {
+    void checkForUpdateSilently();
+  }, 500);
 }
 
 async function checkForUpdateSilently(): Promise<void> {

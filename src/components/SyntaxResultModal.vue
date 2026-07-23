@@ -2,7 +2,10 @@
 import { computed } from "vue";
 import AppModal from "@/components/AppModal.vue";
 import type { SyntaxCheckResult } from "@/utils/plantuml-syntax";
-import { formatSyntaxIssues } from "@/utils/plantuml-syntax";
+import {
+  extractSyntaxErrorLines,
+  formatSyntaxIssues,
+} from "@/utils/plantuml-syntax";
 
 const props = defineProps<{
   open: boolean;
@@ -44,18 +47,7 @@ const message = computed(() => {
   return formatSyntaxIssues(props.result.issues);
 });
 
-const errorLines = computed(() => {
-  if (!props.result) {
-    return [];
-  }
-  return [
-    ...new Set(
-      props.result.issues
-        .map((issue) => issue.line)
-        .filter((line): line is number => typeof line === "number"),
-    ),
-  ].sort((left, right) => left - right);
-});
+const errorLines = computed(() => extractSyntaxErrorLines(props.result));
 </script>
 
 <template>
