@@ -353,18 +353,9 @@ watch(
       return;
     }
 
-    const previousDefault = wasDark
+    previewBackground.value = isDark
       ? DEFAULT_PREVIEW_BG.dark
       : DEFAULT_PREVIEW_BG.light;
-    const nextDefault = isDark
-      ? DEFAULT_PREVIEW_BG.dark
-      : DEFAULT_PREVIEW_BG.light;
-
-    if (
-      normalizeColor(previewBackground.value) === normalizeColor(previousDefault)
-    ) {
-      previewBackground.value = nextDefault;
-    }
   },
   { immediate: true },
 );
