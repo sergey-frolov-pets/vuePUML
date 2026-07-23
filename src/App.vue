@@ -4,6 +4,7 @@ import AboutModal from "@/components/AboutModal.vue";
 import DiagramEditor from "@/components/DiagramEditor.vue";
 import DiagramPreview from "@/components/DiagramPreview.vue";
 import DiagramToolbar from "@/components/DiagramToolbar.vue";
+import InstallAppButton from "@/components/InstallAppButton.vue";
 import SettingsModal from "@/components/SettingsModal.vue";
 import ShareHelpModal from "@/components/ShareHelpModal.vue";
 import SyntaxResultModal from "@/components/SyntaxResultModal.vue";
@@ -407,6 +408,7 @@ onMounted(() => {
         <p>Кросс-платформенный офлайн генератор PlantUML диаграмм</p>
       </div>
       <nav class="app-header__nav" aria-label="Настройки">
+        <InstallAppButton />
         <button
           class="btn btn-icon"
           type="button"

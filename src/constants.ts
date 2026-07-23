@@ -7,6 +7,7 @@ export const APP_META = {
 
 export const APP_LINKS = {
   site: "https://puml.sergey-frolov.ru/",
+  installPage: "./install.html",
   github: "https://github.com/sergey-frolov-pets/vuePUML",
   githubReleases:
     "https://github.com/sergey-frolov-pets/vuePUML/releases/latest",
@@ -24,6 +25,8 @@ export const STORAGE_KEY_DARK = "plantuml-smetana-dark";
 export const STORAGE_KEY_LAYOUT = "plantuml-smetana-layout";
 
 export const RENDER_DEBOUNCE_MS = 400;
+
+export const INSTALL_PAGE_PATH = "./install.html";
 
 export const LAYOUT_ENGINES = {
   smetana: "smetana",
