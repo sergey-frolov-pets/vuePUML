@@ -95,16 +95,23 @@ watch(isFullscreen, (value) => {
 
 <style scoped>
 .preview-panel__header {
-  align-items: flex-start;
+  align-items: center;
+  flex-wrap: nowrap;
 }
 
 .preview-header-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-wrap: nowrap;
+  gap: 6px;
   align-items: center;
   justify-content: flex-end;
   flex: 1;
   min-width: 0;
+  flex-shrink: 0;
+}
+
+.preview-header-actions .status-pill {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 </style>

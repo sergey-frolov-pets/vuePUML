@@ -1,6 +1,9 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import ActionIcon from "@/components/icons/ActionIcon.vue";
 import FileBadgeIcon from "@/components/icons/FileBadgeIcon.vue";
+import IconButton from "@/components/IconButton.vue";
+import TooltipWrap from "@/components/TooltipWrap.vue";
 
 const props = defineProps<{
   isRendering: boolean;
@@ -17,6 +20,12 @@ const emit = defineEmits<{
   "update:diagramDarkMode": [value: boolean];
 }>();
 
+const themeToggleLabel = computed(() =>
+  props.diagramDarkMode
+    ? "Переключить на светлую тему диаграммы"
+    : "Переключить на тёмную тему диаграммы",
+);
+
 function toggleDiagramTheme(): void {
   emit("update:diagramDarkMode", !props.diagramDarkMode);
 }
@@ -24,89 +33,77 @@ function toggleDiagramTheme(): void {
 
 <template>
   <div class="preview-toolbar">
-    <label
-      class="preview-toolbar__color-field"
-      title="Фон предпросмотра"
-    >
-      <span class="sr-only">Фон предпросмотра</span>
-      <input
-        class="preview-toolbar__color"
-        type="color"
-        :value="previewBackground"
-        @input="
-          emit(
-            'update:previewBackground',
-            ($event.target as HTMLInputElement).value,
-          )
-        "
-      />
-    </label>
+    <TooltipWrap label="Фон предпросмотра">
+      <label class="preview-toolbar__color-field">
+        <span class="sr-only">Фон предпросмотра</span>
+        <input
+          class="preview-toolbar__color"
+          type="color"
+          :value="previewBackground"
+          @input="
+            emit(
+              'update:previewBackground',
+              ($event.target as HTMLInputElement).value,
+            )
+          "
+        />
+      </label>
+    </TooltipWrap>
 
-    <button
-      class="btn btn-icon"
-      type="button"
-      :aria-pressed="diagramDarkMode"
-      :title="
-        diagramDarkMode
-          ? 'Переключить на светлую тему диаграммы'
-          : 'Переключить на тёмную тему диаграммы'
-      "
-      :aria-label="
-        diagramDarkMode
-          ? 'Переключить на светлую тему диаграммы'
-          : 'Переключить на тёмную тему диаграммы'
-      "
+    <IconButton
+      :label="themeToggleLabel"
+      :pressed="diagramDarkMode"
       @click="toggleDiagramTheme"
     >
-      <ActionIcon :name="diagramDarkMode ? 'sun' : 'moon'" />
-    </button>
+      <ActionIcon
+        :name="diagramDarkMode ? 'sun' : 'moon'"
+        size="large"
+      />
+    </IconButton>
 
-    <button
-      class="btn btn-icon"
-      type="button"
-      title="Обновить"
-      aria-label="Обновить"
+    <IconButton
+      label="Обновить"
       :disabled="isRendering"
       @click="emit('renderNow')"
     >
       <ActionIcon name="refresh" />
-    </button>
+    </IconButton>
 
-    <button
-      class="btn btn-icon btn-primary"
-      type="button"
-      title="Экспорт SVG"
-      aria-label="Экспорт SVG"
+    <IconButton
+      label="Экспорт SVG"
+      primary
+      format
       :disabled="!canExport"
       @click="emit('exportSvg')"
     >
       <FileBadgeIcon format="SVG" />
-    </button>
+    </IconButton>
 
-    <button
-      class="btn btn-icon btn-primary"
-      type="button"
-      title="Экспорт PNG"
-      aria-label="Экспорт PNG"
+    <IconButton
+      label="Экспорт PNG"
+      primary
+      format
       :disabled="!canExport"
       @click="emit('exportPng')"
     >
       <FileBadgeIcon format="PNG" />
-    </button>
+    </IconButton>
   </div>
 </template>
 
 <style scoped>
 .preview-toolbar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 6px;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .preview-toolbar__color-field {
   display: inline-flex;
   margin: 0;
+  flex-shrink: 0;
 }
 
 .preview-toolbar__color {

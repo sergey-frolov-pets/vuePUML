@@ -162,8 +162,8 @@ a {
 
 .panel-header {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-wrap: nowrap;
+  gap: 6px;
   align-items: center;
   justify-content: space-between;
   padding: 12px 14px;
@@ -173,8 +173,10 @@ a {
 
 .panel-title {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .panel-body {
@@ -228,12 +230,19 @@ a {
   height: 36px;
   min-height: 36px;
   padding: 0;
+  flex-shrink: 0;
+}
+
+.btn-format {
+  width: auto;
+  min-width: 54px;
+  padding: 0 10px;
 }
 
 .btn-icon__svg {
   display: block;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
 }
 
