@@ -45,7 +45,12 @@ export async function getServiceWorkerState(): Promise<ServiceWorkerState> {
   }
 
   try {
-    const registration = await navigator.serviceWorker.getRegistration();
+    const scope = new URL("./", window.location.href).href;
+    const registration =
+      (await navigator.serviceWorker.getRegistration(scope)) ??
+      (await navigator.serviceWorker.getRegistration("/")) ??
+      (await navigator.serviceWorker.getRegistration());
+
     if (!registration) {
       return "none";
     }
@@ -109,9 +114,15 @@ export function buildManualInstallMessage(status: PwaInstallStatus): string {
   }
 
   if (status.serviceWorker === "none") {
+    const swError = window.__pwaSwRegistrationError;
+    const errorHint = swError
+      ? `\n\nОшибка регистрации: ${swError}`
+      : "";
+
     return (
       "Service Worker не зарегистрирован — браузер не считает сайт устанавливаемым.\n\n" +
-      "Перезагрузите страницу. Если не поможет — откройте страницу установки."
+      "Перезагрузите страницу. Если не поможет — откройте страницу установки." +
+      errorHint
     );
   }
 

@@ -1,4 +1,5 @@
 import { loadPumlFromFile, PUML_MIME_TYPE } from "@/utils/puml-files";
+import { registerAppServiceWorker } from "@/pwa/serviceWorkerRegistration";
 
 const SHARED_QUERY_PARAM = "shared";
 
@@ -7,19 +8,7 @@ type ShareMessage = {
 };
 
 export async function registerShareSupport(): Promise<void> {
-  if (!("serviceWorker" in navigator)) {
-    return;
-  }
-
-  if (window.location.protocol === "file:") {
-    return;
-  }
-
-  try {
-    await navigator.serviceWorker.register("./sw.js");
-  } catch {
-    // PWA/share optional
-  }
+  await registerAppServiceWorker();
 }
 
 async function readSharedPumlFromServiceWorker(): Promise<string | null> {

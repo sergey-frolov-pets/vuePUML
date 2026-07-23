@@ -4,6 +4,7 @@
   }
 
   window.__deferredPwaInstallPrompt = null;
+  window.__pwaSwRegistrationError = null;
 
   window.addEventListener("beforeinstallprompt", function (event) {
     event.preventDefault();
@@ -16,9 +17,31 @@
     window.dispatchEvent(new CustomEvent("pwa-installed"));
   });
 
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js").catch(function () {
-      // optional PWA feature
+  if (!("serviceWorker" in navigator)) {
+    return;
+  }
+
+  var swUrl = new URL("sw.js", window.location.href).href;
+  var swScope = new URL("./", window.location.href).href;
+
+  function register(url, scope) {
+    return navigator.serviceWorker.register(url, {
+      scope: scope,
+      updateViaCache: "none",
     });
   }
+
+  register(swUrl, swScope).catch(function (error) {
+    window.__pwaSwRegistrationError = String(error);
+    var fallbackUrl = new URL("/sw.js", window.location.origin).href;
+    return register(fallbackUrl, new URL("/", window.location.origin).href).catch(
+      function (fallbackError) {
+        window.__pwaSwRegistrationError = String(fallbackError);
+      },
+    );
+  }).then(function (registration) {
+    if (registration) {
+      window.__pwaSwRegistrationError = null;
+    }
+  });
 })();

@@ -1,37 +1,53 @@
 <script setup lang="ts">
-import { useLongPressTooltip } from "@/composables/useLongPressTooltip";
+import { ref } from 'vue';
+import { useLongPressTooltip } from '@/composables/useLongPressTooltip';
 
 defineProps<{
   label: string;
 }>();
 
+const rootRef = ref<HTMLElement | null>(null);
+
 const {
   tooltipVisible,
+  tooltipPosition,
   onPointerDown,
   onPointerUp,
   onPointerCancel,
-  onPointerLeave,
-} = useLongPressTooltip();
+  onTouchStart,
+  onTouchEnd,
+  onTouchCancel,
+} = useLongPressTooltip(rootRef);
 </script>
 
 <template>
   <span
+    ref="rootRef"
     class="tooltip-wrap"
     @pointerdown.capture="onPointerDown"
     @pointerup.capture="onPointerUp"
     @pointercancel.capture="onPointerCancel"
-    @pointerleave.capture="onPointerLeave"
+    @touchstart.capture.passive="onTouchStart"
+    @touchend.capture="onTouchEnd"
+    @touchcancel.capture="onTouchCancel"
     @contextmenu.prevent
   >
     <slot />
+  </span>
+
+  <Teleport to="body">
     <span
       v-if="tooltipVisible"
-      class="tooltip-wrap__tooltip"
+      class="floating-tooltip"
+      :style="{
+        top: `${tooltipPosition.top}px`,
+        left: `${tooltipPosition.left}px`,
+      }"
       role="tooltip"
     >
       {{ label }}
     </span>
-  </span>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -41,35 +57,6 @@ const {
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
-}
-
-.tooltip-wrap__tooltip {
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 50%;
-  z-index: 20;
-  transform: translateX(-50%);
-  max-width: 220px;
-  padding: 6px 10px;
-  border-radius: 8px;
-  background: var(--text);
-  color: var(--surface);
-  font-size: 0.75rem;
-  font-weight: 500;
-  line-height: 1.3;
-  text-align: center;
-  white-space: nowrap;
-  pointer-events: none;
-  box-shadow: var(--shadow);
-}
-
-.tooltip-wrap__tooltip::after {
-  content: "";
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  border: 5px solid transparent;
-  border-top-color: var(--text);
+  -webkit-touch-callout: none;
 }
 </style>
