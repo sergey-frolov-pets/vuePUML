@@ -26,8 +26,6 @@ export const STORAGE_KEY_LAYOUT = "plantuml-smetana-layout";
 
 export const RENDER_DEBOUNCE_MS = 400;
 
-export const INSTALL_PAGE_PATH = "./install.html";
-
 export const LAYOUT_ENGINES = {
   smetana: "smetana",
   elk: "elk",

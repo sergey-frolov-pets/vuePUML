@@ -3,7 +3,7 @@ import { usePwaInstall } from "@/composables/usePwaInstall";
 
 const { canShowInstallButton, isInstalling, installApp } = usePwaInstall();
 
-const installTitle = "Установить локально на устройство";
+const installTitle = "Установить приложение";
 </script>
 
 <template>

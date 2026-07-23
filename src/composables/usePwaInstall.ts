@@ -1,9 +1,13 @@
 import { computed, onMounted, onUnmounted, ref } from "vue";
-import { INSTALL_PAGE_PATH } from "@/constants";
+import { registerShareSupport } from "@/composables/usePumlShare";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
+
+function isFileProtocol(): boolean {
+  return window.location.protocol === "file:";
 }
 
 function isStandaloneMode(): boolean {
@@ -14,42 +18,36 @@ function isStandaloneMode(): boolean {
   );
 }
 
-function isWebDeployment(): boolean {
-  const { protocol, hostname } = window.location;
-  return protocol === "https:" || (protocol === "http:" && hostname === "localhost");
-}
-
 export function usePwaInstall() {
   const deferredPrompt = ref<BeforeInstallPromptEvent | null>(null);
   const isInstalled = ref(isStandaloneMode());
   const isInstalling = ref(false);
 
   const canShowInstallButton = computed(
-    () => isWebDeployment() && !isInstalled.value,
+    () =>
+      !isFileProtocol() &&
+      !isInstalled.value &&
+      deferredPrompt.value !== null,
   );
 
-  const hasNativePrompt = computed(() => deferredPrompt.value !== null);
-
   async function installApp(): Promise<void> {
-    if (deferredPrompt.value) {
-      isInstalling.value = true;
-
-      try {
-        await deferredPrompt.value.prompt();
-        const choice = await deferredPrompt.value.userChoice;
-
-        if (choice.outcome === "accepted") {
-          isInstalled.value = true;
-        }
-      } finally {
-        deferredPrompt.value = null;
-        isInstalling.value = false;
-      }
-
+    if (!deferredPrompt.value) {
       return;
     }
 
-    window.location.assign(INSTALL_PAGE_PATH);
+    isInstalling.value = true;
+
+    try {
+      await deferredPrompt.value.prompt();
+      const choice = await deferredPrompt.value.userChoice;
+
+      if (choice.outcome === "accepted") {
+        isInstalled.value = true;
+      }
+    } finally {
+      deferredPrompt.value = null;
+      isInstalling.value = false;
+    }
   }
 
   const onBeforeInstallPrompt = (event: Event): void => {
@@ -69,6 +67,12 @@ export function usePwaInstall() {
   };
 
   onMounted(() => {
+    if (isFileProtocol()) {
+      return;
+    }
+
+    void registerShareSupport();
+
     window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
     window.addEventListener("appinstalled", onAppInstalled);
     standaloneMedia.addEventListener("change", onDisplayModeChange);
@@ -82,7 +86,6 @@ export function usePwaInstall() {
 
   return {
     canShowInstallButton,
-    hasNativePrompt,
     isInstalling,
     installApp,
   };
