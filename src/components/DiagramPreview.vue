@@ -64,7 +64,7 @@ watch(isFullscreen, (value) => {
         <h2 class="panel-title" title="Предпросмотр">Просмотр</h2>
         <PanelFullscreenButton :active="isFullscreen" @toggle="toggleFullscreen" />
       </div>
-      <div class="panel-header__toolbar preview-header-actions">
+      <div class="panel-header__toolbar">
         <DiagramToolbar
           :is-rendering="isRendering"
           :can-export="canExport"
@@ -95,11 +95,7 @@ watch(isFullscreen, (value) => {
 </template>
 
 <style scoped>
-.preview-header-actions {
-  display: contents;
-}
-
-.preview-header-actions .status-pill--compact {
+.status-pill--compact {
   flex-shrink: 0;
   min-width: 32px;
   padding: 0 8px;
