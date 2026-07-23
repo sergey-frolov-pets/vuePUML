@@ -13,6 +13,14 @@ export default defineConfig({
   },
   plugins: [vue()],
   base: "./",
+  server: {
+    proxy: {
+      "/api": {
+        target: "http://localhost:3001",
+        changeOrigin: true,
+      },
+    },
+  },
   build: {
     outDir: "dist",
     emptyOutDir: true,

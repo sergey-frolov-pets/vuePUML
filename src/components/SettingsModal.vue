@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref, watch } from "vue";
 import AppModal from "@/components/AppModal.vue";
 import { APP_LINKS, LAYOUT_ENGINES, type LayoutEngine } from "@/constants";
 import {
@@ -7,6 +8,13 @@ import {
   type EditorFontFamilyId,
   type EditorFontSize,
 } from "@/constants/editor-settings";
+import {
+  LOCALE_LABELS,
+  SUPPORTED_LOCALES,
+  type AppLocale,
+} from "@/constants/i18n";
+import { useLocale } from "@/composables/useLocale";
+import { useLibraryApiUrl } from "@/composables/useLibraryApiUrl";
 
 defineProps<{
   open: boolean;
@@ -26,6 +34,19 @@ const emit = defineEmits<{
   openAbout: [];
 }>();
 
+const { locale, setLocale, t } = useLocale();
+const { libraryApiUrl, setLibraryApiUrl } = useLibraryApiUrl();
+
+const libraryServerInput = ref(libraryApiUrl.value);
+
+watch(libraryApiUrl, (value) => {
+  libraryServerInput.value = value;
+});
+
+function onLibraryServerBlur(): void {
+  setLibraryApiUrl(libraryServerInput.value);
+}
+
 const layoutOptions = Object.entries(LAYOUT_ENGINES).map(([label, value]) => ({
   label,
   value,
@@ -33,12 +54,12 @@ const layoutOptions = Object.entries(LAYOUT_ENGINES).map(([label, value]) => ({
 </script>
 
 <template>
-  <AppModal :open="open" title="Настройки" @close="emit('close')">
+  <AppModal :open="open" :title="t('settings.title')" @close="emit('close')">
     <div class="settings-section">
-      <h3 class="settings-section__title">Редактор</h3>
+      <h3 class="settings-section__title">{{ t("settings.editor") }}</h3>
 
       <label class="settings-field">
-        <span class="settings-field__label">Размер шрифта</span>
+        <span class="settings-field__label">{{ t("settings.fontSize") }}</span>
         <select
           class="select"
           :value="editorFontSize"
@@ -60,7 +81,7 @@ const layoutOptions = Object.entries(LAYOUT_ENGINES).map(([label, value]) => ({
       </label>
 
       <label class="settings-field">
-        <span class="settings-field__label">Шрифт</span>
+        <span class="settings-field__label">{{ t("settings.fontFamily") }}</span>
         <select
           class="select"
           :value="editorFontFamilyId"
@@ -83,10 +104,10 @@ const layoutOptions = Object.entries(LAYOUT_ENGINES).map(([label, value]) => ({
     </div>
 
     <div class="settings-section">
-      <h3 class="settings-section__title">Рендеринг</h3>
+      <h3 class="settings-section__title">{{ t("settings.rendering") }}</h3>
 
       <label class="settings-field">
-        <span class="settings-field__label">Движок раскладки</span>
+        <span class="settings-field__label">{{ t("settings.layoutEngine") }}</span>
         <select
           class="select"
           :value="layout"
@@ -109,7 +130,7 @@ const layoutOptions = Object.entries(LAYOUT_ENGINES).map(([label, value]) => ({
     </div>
 
     <div class="settings-section">
-      <h3 class="settings-section__title">Тема интерфейса</h3>
+      <h3 class="settings-section__title">{{ t("settings.theme") }}</h3>
 
       <label class="settings-field settings-field--checkbox">
         <input
@@ -122,19 +143,61 @@ const layoutOptions = Object.entries(LAYOUT_ENGINES).map(([label, value]) => ({
             )
           "
         />
-        <span>Тёмная тема</span>
+        <span>{{ t("settings.darkTheme") }}</span>
       </label>
     </div>
 
     <div class="settings-section">
-      <h3 class="settings-section__title">Справка</h3>
+      <h3 class="settings-section__title">{{ t("settings.language") }}</h3>
+
+      <label class="settings-field">
+        <span class="settings-field__label">{{ t("settings.language") }}</span>
+        <select
+          class="select"
+          :value="locale"
+          @change="
+            setLocale(($event.target as HTMLSelectElement).value as AppLocale)
+          "
+        >
+          <option
+            v-for="supportedLocale in SUPPORTED_LOCALES"
+            :key="supportedLocale"
+            :value="supportedLocale"
+          >
+            {{ LOCALE_LABELS[supportedLocale] }}
+          </option>
+        </select>
+      </label>
+    </div>
+
+    <div class="settings-section">
+      <h3 class="settings-section__title">{{ t("settings.library") }}</h3>
+
+      <label class="settings-field">
+        <span class="settings-field__label">{{ t("settings.libraryServer") }}</span>
+        <input
+          v-model="libraryServerInput"
+          class="select"
+          type="url"
+          inputmode="url"
+          autocomplete="off"
+          :placeholder="t('settings.libraryServerPlaceholder')"
+          @blur="onLibraryServerBlur"
+          @keydown.enter="onLibraryServerBlur"
+        />
+        <span class="settings-field__hint">{{ t("settings.libraryServerHint") }}</span>
+      </label>
+    </div>
+
+    <div class="settings-section">
+      <h3 class="settings-section__title">{{ t("settings.help") }}</h3>
       <div class="settings-links">
         <button
           class="btn settings-link-btn"
           type="button"
           @click="emit('openShareHelp')"
         >
-          Как передать .puml
+          {{ t("settings.shareHelp") }}
         </button>
         <a
           class="btn settings-link-btn"
@@ -142,21 +205,21 @@ const layoutOptions = Object.entries(LAYOUT_ENGINES).map(([label, value]) => ({
           target="_blank"
           rel="noopener noreferrer"
         >
-          Справка PlantUML
+          {{ t("settings.plantumlGuide") }}
         </a>
         <button
           class="btn settings-link-btn"
           type="button"
           @click="emit('openAbout')"
         >
-          О программе
+          {{ t("settings.about") }}
         </button>
       </div>
     </div>
 
     <template #footer>
       <button class="btn btn-primary" type="button" @click="emit('close')">
-        Готово
+        {{ t("app.done") }}
       </button>
     </template>
   </AppModal>
@@ -185,6 +248,12 @@ const layoutOptions = Object.entries(LAYOUT_ENGINES).map(([label, value]) => ({
 .settings-field__label {
   font-size: 0.88rem;
   color: var(--text-muted);
+}
+
+.settings-field__hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.35;
 }
 
 .settings-field--checkbox {

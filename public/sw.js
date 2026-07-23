@@ -1,5 +1,6 @@
 const SHARED_PUML_CACHE = "shared-puml-v1";
 const APP_SHELL_CACHE = "vueplantuml-shell-v1";
+const LIBRARY_API_CACHE = "vueplantuml-library-api-v1";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(self.skipWaiting());
@@ -40,6 +41,13 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  const url = new URL(request.url);
+
+  if (url.pathname.startsWith("/api/")) {
+    event.respondWith(networkFirstLibraryApi(request));
+    return;
+  }
+
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request).catch(() =>
@@ -48,6 +56,24 @@ self.addEventListener("fetch", (event) => {
     );
   }
 });
+
+async function networkFirstLibraryApi(request) {
+  const cache = await caches.open(LIBRARY_API_CACHE);
+
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      await cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    const cached = await cache.match(request);
+    if (cached) {
+      return cached;
+    }
+    throw new Error("Library API unavailable offline");
+  }
+}
 
 async function handleShareTarget(request) {
   let sharedText = "";

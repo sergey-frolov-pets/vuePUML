@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from "vue";
 import AboutModal from "@/components/AboutModal.vue";
 import AppDialogHost from "@/components/AppDialogHost.vue";
 import DiagramEditor from "@/components/DiagramEditor.vue";
+import DiagramLibraryModal from "@/components/DiagramLibraryModal.vue";
 import DiagramPreview from "@/components/DiagramPreview.vue";
 import InstallAppButton from "@/components/InstallAppButton.vue";
 import SettingsModal from "@/components/SettingsModal.vue";
@@ -44,6 +45,7 @@ import {
   setupLaunchQueue,
 } from "@/composables/usePumlShare";
 import { useAppDialog } from "@/composables/useAppDialog";
+import { useLocale } from "@/composables/useLocale";
 import {
   applyLayoutPragma,
   splitSourceLines,
@@ -55,6 +57,9 @@ import {
 } from "@/utils/export";
 import { savePumlSource, resolvePumlFileName } from "@/utils/puml-files";
 import type { SyntaxCheckResult } from "@/utils/plantuml-syntax";
+
+const { prompt, alert } = useAppDialog();
+const { t } = useLocale();
 
 const source = ref(DEFAULT_SOURCE);
 const layout = ref<LayoutEngine>(LAYOUT_ENGINES.smetana);
@@ -100,16 +105,15 @@ const error = ref("");
 const isRendering = ref(false);
 const isValidating = ref(false);
 const engineReady = ref(false);
-const engineStatus = ref("Загрузка движка PlantUML...");
+const engineStatus = ref(t("app.engineLoading"));
 const loadedFileName = ref("diagram.puml");
 const syntaxResult = ref<SyntaxCheckResult | null>(null);
 const syntaxErrorLines = ref<number[]>([]);
 const isSyntaxModalOpen = ref(false);
 const isSettingsModalOpen = ref(false);
+const isLibraryModalOpen = ref(false);
 const isAboutModalOpen = ref(false);
 const isShareHelpModalOpen = ref(false);
-
-const { prompt, alert } = useAppDialog();
 
 let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -202,7 +206,7 @@ function restoreSettings(): void {
 
 async function renderDiagram(): Promise<void> {
   if (!engineReady.value) {
-    error.value = "Движок PlantUML ещё не загружен";
+    error.value = t("app.engineNotReady");
     return;
   }
 
@@ -242,7 +246,7 @@ function onFileLoaded(payload: { content: string; fileName: string }): void {
 
 function onImportError(message: string): void {
   void alert({
-    title: "Ошибка импорта",
+    title: t("app.importError"),
     message,
     variant: "error",
   });
@@ -298,10 +302,10 @@ async function savePuml(): Promise<void> {
   }
 
   const fileName = await prompt({
-    title: "Сохранить .puml",
-    message: "Имя файла",
+    title: t("app.savePuml"),
+    message: t("app.fileName"),
     value: loadedFileName.value,
-    confirmLabel: "Сохранить",
+    confirmLabel: t("app.save"),
     placeholder: "diagram.puml",
   });
 
@@ -358,7 +362,7 @@ async function exportPng(): Promise<void> {
         ? exportError.message
         : "Не удалось экспортировать PNG";
     void alert({
-      title: "Ошибка экспорта",
+      title: t("app.exportError"),
       message,
       variant: "error",
     });
@@ -414,6 +418,17 @@ function openSettingsModal(): void {
   isSettingsModalOpen.value = true;
 }
 
+function openLibraryModal(): void {
+  isLibraryModalOpen.value = true;
+}
+
+function onLibraryDiagramOpen(payload: {
+  content: string;
+  fileName: string;
+}): void {
+  applyLoadedSource(payload.content, payload.fileName);
+}
+
 function openShareHelpFromSettings(): void {
   isSettingsModalOpen.value = false;
   isShareHelpModalOpen.value = true;
@@ -431,8 +446,8 @@ onMounted(() => {
     .then(() => {
       engineReady.value = isVizGlobalReady();
       engineStatus.value = engineReady.value
-        ? "Движок готов"
-        : "Движок не инициализировался";
+        ? t("app.engineReady")
+        : t("app.error");
       scheduleRender();
     })
     .catch((bootError) => {
@@ -451,15 +466,23 @@ onMounted(() => {
     <header class="app-header">
       <div class="app-header__main">
         <h1>{{ APP_META.name }}</h1>
-        <p>Кросс-платформенный офлайн генератор PlantUML диаграмм</p>
+        <p>{{ t("app.subtitle") }}</p>
       </div>
-      <nav class="app-header__nav" aria-label="Настройки">
+      <nav class="app-header__nav" :aria-label="t('app.settings')">
+        <button
+          class="btn app-header__library-btn"
+          type="button"
+          :title="t('app.library')"
+          @click="openLibraryModal"
+        >
+          {{ t("app.library") }}
+        </button>
         <InstallAppButton />
         <button
           class="btn app-header__settings-btn"
           type="button"
-          aria-label="Настройки"
-          title="Настройки"
+          :aria-label="t('app.settings')"
+          :title="t('app.settings')"
           @click="openSettingsModal"
         >
           ⚙
@@ -497,14 +520,14 @@ onMounted(() => {
     </main>
 
     <footer class="status-bar">
-      <span>Файл: {{ loadedFileName }}</span>
+      <span>{{ t("app.file") }}: {{ loadedFileName }}</span>
       <span class="status-bar__engine">
-        <span>Движок: {{ layout }}</span>
+        <span>{{ t("app.engine") }}: {{ layout }}</span>
         <span
           v-if="engineReady"
           class="status-bar__engine-ok"
-          aria-label="Движок готов"
-          title="Движок готов"
+          :aria-label="t('app.engineReady')"
+          :title="t('app.engineReady')"
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path
@@ -531,6 +554,12 @@ onMounted(() => {
       :result="syntaxResult"
       :is-validating="isValidating"
       @close="closeSyntaxModal"
+    />
+
+    <DiagramLibraryModal
+      :open="isLibraryModalOpen"
+      @close="isLibraryModalOpen = false"
+      @open-diagram="onLibraryDiagramOpen"
     />
 
     <SettingsModal
@@ -575,6 +604,10 @@ onMounted(() => {
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
+}
+
+.app-header__library-btn {
+  min-height: 40px;
 }
 
 .app-header__settings-btn {
