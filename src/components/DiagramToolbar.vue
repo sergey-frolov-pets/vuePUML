@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import ActionIcon from "@/components/icons/ActionIcon.vue";
+import FileBadgeIcon from "@/components/icons/FileBadgeIcon.vue";
+
 const props = defineProps<{
   isRendering: boolean;
   canExport: boolean;
@@ -55,41 +58,7 @@ function toggleDiagramTheme(): void {
       "
       @click="toggleDiagramTheme"
     >
-      <svg
-        v-if="diagramDarkMode"
-        class="btn-icon__svg"
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-      >
-        <circle
-          cx="12"
-          cy="12"
-          r="4"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        />
-        <path
-          d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-        />
-      </svg>
-      <svg
-        v-else
-        class="btn-icon__svg"
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-      >
-        <path
-          d="M21 14.5A8.5 8.5 0 0 1 9.5 3 7 7 0 1 0 21 14.5Z"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linejoin="round"
-        />
-      </svg>
+      <ActionIcon :name="diagramDarkMode ? 'sun' : 'moon'" />
     </button>
 
     <button
@@ -100,16 +69,7 @@ function toggleDiagramTheme(): void {
       :disabled="isRendering"
       @click="emit('renderNow')"
     >
-      <svg class="btn-icon__svg" viewBox="0 0 24 24" aria-hidden="true">
-        <path
-          d="M20 12a8 8 0 1 1-2.3-5.7M20 4v6h-6"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
-      </svg>
+      <ActionIcon name="refresh" />
     </button>
 
     <button
@@ -120,22 +80,7 @@ function toggleDiagramTheme(): void {
       :disabled="!canExport"
       @click="emit('exportSvg')"
     >
-      <svg class="btn-icon__svg" viewBox="0 0 24 24" aria-hidden="true">
-        <path
-          d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linejoin="round"
-        />
-        <path
-          d="M14 3v5h5M8 13h8M8 17h5"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-        />
-      </svg>
+      <FileBadgeIcon format="SVG" />
     </button>
 
     <button
@@ -146,27 +91,7 @@ function toggleDiagramTheme(): void {
       :disabled="!canExport"
       @click="emit('exportPng')"
     >
-      <svg class="btn-icon__svg" viewBox="0 0 24 24" aria-hidden="true">
-        <rect
-          x="3"
-          y="5"
-          width="18"
-          height="14"
-          rx="2"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        />
-        <circle cx="9" cy="10" r="2" fill="currentColor" />
-        <path
-          d="m21 15-5-5L5 21"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
-      </svg>
+      <FileBadgeIcon format="PNG" />
     </button>
   </div>
 </template>
