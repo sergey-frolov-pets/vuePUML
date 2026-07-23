@@ -9,7 +9,7 @@ const installTitle = "Установить локально на устройс�
 <template>
   <button
     v-if="canShowInstallButton"
-    class="btn btn-icon install-app-btn"
+    class="btn install-app-btn"
     type="button"
     :aria-label="installTitle"
     :title="installTitle"
@@ -43,13 +43,20 @@ const installTitle = "Установить локально на устройс�
 
 <style scoped>
 .install-app-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   width: auto;
   min-width: 40px;
-  padding: 0 12px 0 10px;
-  gap: 6px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 14px;
   color: var(--accent);
   border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
   background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .install-app-btn:hover:not(:disabled) {
@@ -62,18 +69,19 @@ const installTitle = "Установить локально на устройс�
 }
 
 .install-app-btn__icon {
+  display: block;
   width: 18px;
   height: 18px;
   flex-shrink: 0;
 }
 
 .install-app-btn__label {
-  font-size: 0.82rem;
+  font-size: 0.875rem;
   font-weight: 600;
   line-height: 1;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 720px) {
   .install-app-btn__label {
     display: none;
   }

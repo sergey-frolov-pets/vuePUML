@@ -11,7 +11,7 @@ const emit = defineEmits<{
 <template>
   <button
     type="button"
-    class="panel-corner-btn btn btn-icon"
+    class="panel-corner-btn btn"
     :aria-label="active ? 'Свернуть' : 'На весь экран'"
     :title="active ? 'Свернуть' : 'На весь экран'"
     :aria-pressed="active"

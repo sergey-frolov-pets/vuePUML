@@ -124,6 +124,10 @@ a {
   top: 8px;
   right: 8px;
   z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
   width: 36px;
   min-width: 36px;
   height: 36px;
@@ -134,10 +138,16 @@ a {
   backdrop-filter: blur(4px);
 }
 
+.panel-corner-btn.btn {
+  min-height: 36px;
+  padding: 0;
+}
+
 .panel-corner-btn__icon {
   display: block;
   width: 18px;
   height: 18px;
+  flex-shrink: 0;
 }
 
 .panel--corner-controls.is-fullscreen .panel-corner-btn {

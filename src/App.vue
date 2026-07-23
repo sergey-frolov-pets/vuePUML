@@ -410,7 +410,7 @@ onMounted(() => {
       <nav class="app-header__nav" aria-label="Настройки">
         <InstallAppButton />
         <button
-          class="btn btn-icon"
+          class="btn app-header__settings-btn"
           type="button"
           aria-label="Настройки"
           title="Настройки"
@@ -522,7 +522,7 @@ onMounted(() => {
   align-items: center;
 }
 
-.btn-icon {
+.app-header__settings-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
