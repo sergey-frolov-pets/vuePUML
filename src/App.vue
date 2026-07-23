@@ -6,6 +6,8 @@ import DiagramEditor from "@/components/DiagramEditor.vue";
 import DiagramLibraryModal from "@/components/DiagramLibraryModal.vue";
 import DiagramPreview from "@/components/DiagramPreview.vue";
 import InstallAppButton from "@/components/InstallAppButton.vue";
+import IconButton from "@/components/IconButton.vue";
+import ActionIcon from "@/components/icons/ActionIcon.vue";
 import SettingsModal from "@/components/SettingsModal.vue";
 import ShareHelpModal from "@/components/ShareHelpModal.vue";
 import SyntaxResultModal from "@/components/SyntaxResultModal.vue";
@@ -469,24 +471,21 @@ onMounted(() => {
         <p>{{ t("app.subtitle") }}</p>
       </div>
       <nav class="app-header__nav" :aria-label="t('app.settings')">
-        <button
-          class="btn app-header__library-btn"
-          type="button"
-          :title="t('app.library')"
+        <IconButton
+          :label="t('app.library')"
+          extra-class="app-header__icon-btn"
           @click="openLibraryModal"
         >
-          {{ t("app.library") }}
-        </button>
+          <ActionIcon name="library" />
+        </IconButton>
         <InstallAppButton />
-        <button
-          class="btn app-header__settings-btn"
-          type="button"
-          :aria-label="t('app.settings')"
-          :title="t('app.settings')"
+        <IconButton
+          :label="t('app.settings')"
+          extra-class="app-header__icon-btn"
           @click="openSettingsModal"
         >
-          ⚙
-        </button>
+          <ActionIcon name="settings" />
+        </IconButton>
       </nav>
     </header>
 
@@ -606,18 +605,11 @@ onMounted(() => {
   align-items: center;
 }
 
-.app-header__library-btn {
-  min-height: 40px;
-}
-
-.app-header__settings-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.app-header__icon-btn {
   width: 40px;
   min-width: 40px;
+  height: 40px;
+  min-height: 40px;
   padding: 0;
-  font-size: 1.25rem;
-  line-height: 1;
 }
 </style>

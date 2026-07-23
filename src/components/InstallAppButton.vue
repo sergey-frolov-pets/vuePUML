@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
+import { useLongPressTooltip } from "@/composables/useLongPressTooltip";
 import { usePwaInstall } from "@/composables/usePwaInstall";
 
 const {
@@ -26,12 +27,39 @@ const installTitle = computed(() => {
 
   return "Установить приложение";
 });
+
+const rootRef = ref<HTMLElement | null>(null);
+
+const {
+  tooltipVisible,
+  tooltipPosition,
+  tooltipPlacement,
+  tooltipRef,
+  onPointerDown,
+  onPointerUp,
+  onPointerCancel,
+  onTouchStart,
+  onTouchEnd,
+  onTouchCancel,
+  consumeSuppressClick,
+} = useLongPressTooltip(rootRef);
+
+function onClick(event: MouseEvent): void {
+  if (consumeSuppressClick()) {
+    event.preventDefault();
+    event.stopPropagation();
+    return;
+  }
+
+  void installApp();
+}
 </script>
 
 <template>
   <button
     v-if="canShowInstallButton"
-    class="btn install-app-btn"
+    ref="rootRef"
+    class="btn install-app-btn icon-btn"
     :class="{
       'install-app-btn--waiting': !canInstallNow && !needsHttps,
       'install-app-btn--needs-https': needsHttps,
@@ -39,10 +67,16 @@ const installTitle = computed(() => {
     }"
     type="button"
     :aria-label="installTitle"
-    :title="installTitle"
     :disabled="isInstalling"
     :aria-busy="isInstalling"
-    @click="installApp"
+    @pointerdown="onPointerDown"
+    @pointerup="onPointerUp"
+    @pointercancel="onPointerCancel"
+    @touchstart.passive="onTouchStart"
+    @touchend="onTouchEnd"
+    @touchcancel="onTouchCancel"
+    @contextmenu.prevent
+    @click="onClick"
   >
     <svg class="install-app-btn__icon" viewBox="0 0 24 24" aria-hidden="true">
       <rect
@@ -67,6 +101,22 @@ const installTitle = computed(() => {
     </svg>
     <span class="install-app-btn__label">Установить</span>
   </button>
+
+  <Teleport to="body">
+    <span
+      v-if="tooltipVisible"
+      ref="tooltipRef"
+      class="floating-tooltip"
+      :class="`floating-tooltip--${tooltipPlacement}`"
+      :style="{
+        top: `${tooltipPosition.top}px`,
+        left: `${tooltipPosition.left}px`,
+      }"
+      role="tooltip"
+    >
+      {{ installTitle }}
+    </span>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -85,6 +135,10 @@ const installTitle = computed(() => {
   background: color-mix(in srgb, var(--accent) 8%, var(--surface));
   white-space: nowrap;
   flex-shrink: 0;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .install-app-btn:hover:not(:disabled) {

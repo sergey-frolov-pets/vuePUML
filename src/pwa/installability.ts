@@ -1,3 +1,5 @@
+import { APP_LINKS } from "@/constants";
+
 export type PwaInstallPlatform = "ios" | "android" | "desktop" | "unknown";
 
 export type ServiceWorkerState = "unsupported" | "none" | "registered" | "controlling";
@@ -85,6 +87,14 @@ export async function inspectPwaInstallStatus(options: {
   };
 }
 
+function isSslCertificateError(error: string | null | undefined): boolean {
+  if (!error) {
+    return false;
+  }
+
+  return /ssl certificate/i.test(error);
+}
+
 export function buildManualInstallMessage(status: PwaInstallStatus): string {
   if (!status.secureContext) {
     return (
@@ -115,6 +125,21 @@ export function buildManualInstallMessage(status: PwaInstallStatus): string {
 
   if (status.serviceWorker === "none") {
     const swError = window.__pwaSwRegistrationError;
+
+    if (isSslCertificateError(swError)) {
+      return (
+        "Не удалось загрузить Service Worker из-за ошибки SSL-сертификата домена.\n\n" +
+        "Браузер видит сертификат GitHub (*.github.io), а не вашего домена puml.sergey-frolov.ru.\n\n" +
+        "Что сделать:\n" +
+        "1. GitHub → Settings → Pages → Custom domain: puml.sergey-frolov.ru\n" +
+        "2. Проверьте DNS: CNAME puml → sergey-frolov-pets.github.io\n" +
+        "3. Включите «Enforce HTTPS» и подождите выпуск сертификата (до 24 ч)\n" +
+        "4. Пока сертификат не готов — откройте " +
+        APP_LINKS.githubPages +
+        " для установки PWA"
+      );
+    }
+
     const errorHint = swError
       ? `\n\nОшибка регистрации: ${swError}`
       : "";

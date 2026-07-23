@@ -2,12 +2,13 @@
 import { ref } from 'vue';
 import { useLongPressTooltip } from '@/composables/useLongPressTooltip';
 
-defineProps<{
+const props = defineProps<{
   label: string;
   disabled?: boolean;
   pressed?: boolean;
   primary?: boolean;
   format?: boolean;
+  extraClass?: string;
 }>();
 
 const emit = defineEmits<{
@@ -19,6 +20,8 @@ const rootRef = ref<HTMLElement | null>(null);
 const {
   tooltipVisible,
   tooltipPosition,
+  tooltipPlacement,
+  tooltipRef,
   onPointerDown,
   onPointerUp,
   onPointerCancel,
@@ -44,11 +47,14 @@ function onClick(event: MouseEvent): void {
     ref="rootRef"
     type="button"
     class="icon-btn btn btn-icon"
-    :class="{
-      'btn-primary': primary,
-      'btn-format': format,
-      'icon-btn--pressed': pressed,
-    }"
+    :class="[
+      props.extraClass,
+      {
+        'btn-primary': primary,
+        'btn-format': format,
+        'icon-btn--pressed': pressed,
+      },
+    ]"
     :disabled="disabled"
     :aria-label="label"
     :aria-pressed="pressed !== undefined ? pressed : undefined"
@@ -67,7 +73,9 @@ function onClick(event: MouseEvent): void {
   <Teleport to="body">
     <span
       v-if="tooltipVisible"
+      ref="tooltipRef"
       class="floating-tooltip"
+      :class="`floating-tooltip--${tooltipPlacement}`"
       :style="{
         top: `${tooltipPosition.top}px`,
         left: `${tooltipPosition.left}px`,

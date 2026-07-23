@@ -11,6 +11,8 @@ const rootRef = ref<HTMLElement | null>(null);
 const {
   tooltipVisible,
   tooltipPosition,
+  tooltipPlacement,
+  tooltipRef,
   onPointerDown,
   onPointerUp,
   onPointerCancel,
@@ -38,7 +40,9 @@ const {
   <Teleport to="body">
     <span
       v-if="tooltipVisible"
+      ref="tooltipRef"
       class="floating-tooltip"
+      :class="`floating-tooltip--${tooltipPlacement}`"
       :style="{
         top: `${tooltipPosition.top}px`,
         left: `${tooltipPosition.left}px`,
