@@ -39,7 +39,6 @@ import {
 } from "@/composables/usePlantUml";
 import {
   consumeSharedLaunch,
-  registerShareSupport,
   setupLaunchQueue,
 } from "@/composables/usePumlShare";
 import {
@@ -379,7 +378,6 @@ function openAboutFromSettings(): void {
 
 onMounted(() => {
   restoreSettings();
-  void registerShareSupport();
   void initializeIncomingSources();
   void waitForEngineReady()
     .then(() => {

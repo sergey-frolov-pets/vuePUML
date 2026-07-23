@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { usePwaInstall } from "@/composables/usePwaInstall";
 
-const { canShowInstallButton, isInstalling, installApp } = usePwaInstall();
+const { canShowInstallButton, canInstallNow, isInstalling, installApp } =
+  usePwaInstall();
 
 const installTitle = "Установить приложение";
 </script>
@@ -64,8 +65,8 @@ const installTitle = "Установить приложение";
 }
 
 .install-app-btn:disabled {
-  opacity: 0.7;
-  cursor: wait;
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .install-app-btn__icon {

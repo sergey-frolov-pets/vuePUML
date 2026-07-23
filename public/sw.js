@@ -1,4 +1,5 @@
 const SHARED_PUML_CACHE = "shared-puml-v1";
+const APP_SHELL_CACHE = "vueplantuml-shell-v1";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(self.skipWaiting());
@@ -26,16 +27,26 @@ self.addEventListener("message", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;
-  if (request.method !== "POST") {
+
+  if (request.method === "POST") {
+    const url = new URL(request.url);
+    if (url.pathname.endsWith("/share-target")) {
+      event.respondWith(handleShareTarget(request));
+    }
     return;
   }
 
-  const url = new URL(request.url);
-  if (!url.pathname.endsWith("/share-target")) {
+  if (request.method !== "GET") {
     return;
   }
 
-  event.respondWith(handleShareTarget(request));
+  if (request.mode === "navigate") {
+    event.respondWith(
+      fetch(request).catch(() =>
+        caches.open(APP_SHELL_CACHE).then((cache) => cache.match("./index.html")),
+      ),
+    );
+  }
 });
 
 async function handleShareTarget(request) {

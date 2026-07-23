@@ -1,91 +1,43 @@
-import { computed, onMounted, onUnmounted, ref } from "vue";
-import { registerShareSupport } from "@/composables/usePumlShare";
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-}
-
-function isFileProtocol(): boolean {
-  return window.location.protocol === "file:";
-}
-
-function isStandaloneMode(): boolean {
-  return (
-    window.matchMedia("(display-mode: standalone)").matches ||
-    window.matchMedia("(display-mode: fullscreen)").matches ||
-    (window.navigator as Navigator & { standalone?: boolean }).standalone === true
-  );
-}
+import { computed, ref } from "vue";
+import {
+  deferredInstallPrompt,
+  isFileProtocol,
+  isPwaInstalled,
+} from "@/pwa/installPromptState";
 
 export function usePwaInstall() {
-  const deferredPrompt = ref<BeforeInstallPromptEvent | null>(null);
-  const isInstalled = ref(isStandaloneMode());
   const isInstalling = ref(false);
 
   const canShowInstallButton = computed(
-    () =>
-      !isFileProtocol() &&
-      !isInstalled.value &&
-      deferredPrompt.value !== null,
+    () => !isFileProtocol() && !isPwaInstalled.value,
   );
 
+  const canInstallNow = computed(() => deferredInstallPrompt.value !== null);
+
   async function installApp(): Promise<void> {
-    if (!deferredPrompt.value) {
+    const promptEvent = deferredInstallPrompt.value;
+    if (!promptEvent) {
       return;
     }
 
     isInstalling.value = true;
 
     try {
-      await deferredPrompt.value.prompt();
-      const choice = await deferredPrompt.value.userChoice;
+      await promptEvent.prompt();
+      const choice = await promptEvent.userChoice;
 
       if (choice.outcome === "accepted") {
-        isInstalled.value = true;
+        isPwaInstalled.value = true;
       }
     } finally {
-      deferredPrompt.value = null;
+      deferredInstallPrompt.value = null;
       isInstalling.value = false;
     }
   }
 
-  const onBeforeInstallPrompt = (event: Event): void => {
-    event.preventDefault();
-    deferredPrompt.value = event as BeforeInstallPromptEvent;
-  };
-
-  const onAppInstalled = (): void => {
-    isInstalled.value = true;
-    deferredPrompt.value = null;
-  };
-
-  const standaloneMedia = window.matchMedia("(display-mode: standalone)");
-
-  const onDisplayModeChange = (): void => {
-    isInstalled.value = isStandaloneMode();
-  };
-
-  onMounted(() => {
-    if (isFileProtocol()) {
-      return;
-    }
-
-    void registerShareSupport();
-
-    window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
-    window.addEventListener("appinstalled", onAppInstalled);
-    standaloneMedia.addEventListener("change", onDisplayModeChange);
-  });
-
-  onUnmounted(() => {
-    window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
-    window.removeEventListener("appinstalled", onAppInstalled);
-    standaloneMedia.removeEventListener("change", onDisplayModeChange);
-  });
-
   return {
     canShowInstallButton,
+    canInstallNow,
     isInstalling,
     installApp,
   };
