@@ -1,17 +1,31 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import { usePwaInstall } from "@/composables/usePwaInstall";
 
-const { canShowInstallButton, canInstallNow, isInstalling, installApp } =
+const { canShowInstallButton, canInstallNow, needsHttps, isInstalling, installApp } =
   usePwaInstall();
 
-const installTitle = "Установить приложение";
+const installTitle = computed(() => {
+  if (needsHttps.value) {
+    return "Установка доступна только по HTTPS";
+  }
+
+  if (!canInstallNow.value) {
+    return "Ожидание предложения установки от браузера";
+  }
+
+  return "Установить приложение";
+});
 </script>
 
 <template>
   <button
     v-if="canShowInstallButton"
     class="btn install-app-btn"
-    :class="{ 'install-app-btn--waiting': !canInstallNow }"
+    :class="{
+      'install-app-btn--waiting': !canInstallNow,
+      'install-app-btn--needs-https': needsHttps,
+    }"
     type="button"
     :aria-label="installTitle"
     :title="installTitle"
@@ -76,6 +90,11 @@ const installTitle = "Установить приложение";
 
 .install-app-btn--waiting {
   opacity: 0.75;
+}
+
+.install-app-btn--needs-https {
+  border-color: color-mix(in srgb, var(--warning, #c98a00) 45%, var(--border));
+  background: color-mix(in srgb, var(--warning, #c98a00) 10%, var(--surface));
 }
 
 .install-app-btn__icon {
