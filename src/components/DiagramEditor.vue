@@ -2,6 +2,8 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import ActionIcon from "@/components/icons/ActionIcon.vue";
 import FileBadgeIcon from "@/components/icons/FileBadgeIcon.vue";
+import IconButton from "@/components/IconButton.vue";
+import TooltipWrap from "@/components/TooltipWrap.vue";
 import PanelFullscreenButton from "@/components/PanelFullscreenButton.vue";
 import { isSampleDiagramSource, SAMPLE_DIAGRAMS } from "@/constants";
 import type { EditorFontSize } from "@/constants/editor-settings";
@@ -65,6 +67,10 @@ const lineNumbersText = computed(() =>
 const errorLineSet = computed(() => new Set(props.errorLines ?? []));
 
 const canClear = computed(() => Boolean(source.value.trim()));
+
+const validateLabel = computed(() =>
+  props.isValidating ? "Проверка..." : "Проверить синтаксис",
+);
 
 function requestClear(): void {
   if (!canClear.value) {
@@ -210,61 +216,51 @@ watch(
     <header class="panel-header">
       <h2 class="panel-title">Исходный код PlantUML</h2>
       <div class="header-actions">
-        <button
-          class="btn btn-icon"
-          type="button"
-          title="Открыть .puml"
-          aria-label="Открыть .puml"
-          @click="openFilePicker"
-        >
+        <IconButton label="Открыть .puml" @click="openFilePicker">
           <ActionIcon name="folder-open" />
-        </button>
-        <button
-          class="btn btn-icon btn-primary"
-          type="button"
-          title="Сохранить .puml"
-          aria-label="Сохранить .puml"
+        </IconButton>
+        <IconButton
+          label="Сохранить .puml"
+          primary
+          format
           :disabled="!canSave"
           @click="emit('savePuml')"
         >
           <FileBadgeIcon format="PUML" />
-        </button>
-        <button
-          class="btn btn-icon"
-          type="button"
-          :title="isValidating ? 'Проверка...' : 'Проверить синтаксис'"
-          :aria-label="isValidating ? 'Проверка...' : 'Проверить синтаксис'"
+        </IconButton>
+        <IconButton
+          :label="validateLabel"
           :disabled="isValidating || isRendering"
           @click="emit('validateSyntax')"
         >
           <ActionIcon name="check" />
-        </button>
-        <button
-          class="btn btn-icon"
-          type="button"
-          title="Очистить"
-          aria-label="Очистить"
+        </IconButton>
+        <IconButton
+          label="Очистить"
           :disabled="!canClear"
           @click="requestClear"
         >
           <ActionIcon name="trash" />
-        </button>
-        <label>
-          <span class="sr-only">Пример диаграммы</span>
-          <select
-            class="select sample-select"
-            @change="loadSample(($event.target as HTMLSelectElement).value)"
-          >
-            <option value="" selected disabled>Примеры</option>
-            <option
-              v-for="name in Object.keys(SAMPLE_DIAGRAMS)"
-              :key="name"
-              :value="name"
+        </IconButton>
+        <TooltipWrap label="Примеры диаграмм">
+          <label class="sample-select-wrap">
+            <span class="sr-only">Пример диаграммы</span>
+            <select
+              class="select sample-select"
+              title="Примеры диаграмм"
+              @change="loadSample(($event.target as HTMLSelectElement).value)"
             >
-              {{ name }}
-            </option>
-          </select>
-        </label>
+              <option value="" selected disabled>Примеры</option>
+              <option
+                v-for="name in Object.keys(SAMPLE_DIAGRAMS)"
+                :key="name"
+                :value="name"
+              >
+                {{ name }}
+              </option>
+            </select>
+          </label>
+        </TooltipWrap>
       </div>
     </header>
 
@@ -333,14 +329,25 @@ watch(
 <style scoped>
 .header-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-wrap: nowrap;
+  gap: 6px;
   align-items: center;
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-end;
+}
+
+.sample-select-wrap {
+  display: inline-flex;
+  flex-shrink: 0;
+  margin: 0;
 }
 
 .sample-select {
-  width: auto;
-  min-width: 180px;
+  width: 104px;
+  min-width: 104px;
+  padding: 0 8px;
+  font-size: 0.82rem;
 }
 
 .editor-panel.is-fullscreen {

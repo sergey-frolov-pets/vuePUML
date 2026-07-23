@@ -1,11 +1,29 @@
 <script setup lang="ts">
-defineProps<{
-  name: "folder-open" | "save" | "check" | "trash" | "refresh" | "sun" | "moon";
-}>();
+withDefaults(
+  defineProps<{
+    name:
+      | "folder-open"
+      | "save"
+      | "check"
+      | "trash"
+      | "refresh"
+      | "sun"
+      | "moon";
+    size?: "default" | "large";
+  }>(),
+  {
+    size: "default",
+  },
+);
 </script>
 
 <template>
-  <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true">
+  <svg
+    class="action-icon"
+    :class="{ 'action-icon--large': size === 'large' }"
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+  >
     <template v-if="name === 'folder-open'">
       <path
         d="M4 7.5V18a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-6l-2-2H6a2 2 0 0 0-2 2Z"
@@ -72,10 +90,17 @@ defineProps<{
 
     <template v-else-if="name === 'refresh'">
       <path
-        d="M20 12a8 8 0 1 1-2.3-5.7M20 4v6h-6"
+        d="M17.65 6.35A8 8 0 1 0 19.24 12"
         fill="none"
         stroke="currentColor"
-        stroke-width="1.8"
+        stroke-width="1.9"
+        stroke-linecap="round"
+      />
+      <path
+        d="M19 2v6h-6"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.9"
         stroke-linecap="round"
         stroke-linejoin="round"
       />
@@ -85,25 +110,25 @@ defineProps<{
       <circle
         cx="12"
         cy="12"
-        r="4"
+        r="4.25"
         fill="none"
         stroke="currentColor"
-        stroke-width="1.8"
+        stroke-width="1.9"
       />
       <path
-        d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"
+        d="M12 2.25v2.5M12 19.25v2.5M4.9 4.9l1.75 1.75M17.35 17.35l1.75 1.75M2.25 12h2.5M19.25 12h2.5M4.9 19.1l1.75-1.75M17.35 6.65l1.75-1.75"
         stroke="currentColor"
-        stroke-width="1.8"
+        stroke-width="1.9"
         stroke-linecap="round"
       />
     </template>
 
     <template v-else-if="name === 'moon'">
       <path
-        d="M21 14.5A8.5 8.5 0 0 1 9.5 3 7 7 0 1 0 21 14.5Z"
-        fill="none"
+        d="M20.5 14.2A8.5 8.5 0 1 1 11.3 2.5a7 7 0 1 0 9.2 11.7Z"
+        fill="currentColor"
         stroke="currentColor"
-        stroke-width="1.8"
+        stroke-width="0.5"
         stroke-linejoin="round"
       />
     </template>
@@ -113,8 +138,13 @@ defineProps<{
 <style scoped>
 .action-icon {
   display: block;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
+}
+
+.action-icon--large {
+  width: 22px;
+  height: 22px;
 }
 </style>
