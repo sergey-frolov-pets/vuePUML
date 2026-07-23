@@ -5,7 +5,7 @@ import {
   isServiceWorkerSupported,
   registerServiceWorker,
 } from "@/pwa/serviceWorker";
-import { isPwaInstalled } from "@/pwa/installPromptState";
+import { isStandaloneApp } from "@/pwa/installPromptState";
 
 const UPDATE_CHECK_DELAY_MS = 600;
 
@@ -90,7 +90,7 @@ export function initPwaUpdate(): void {
 export function usePwaUpdate() {
   const { confirm, alert } = useAppDialog();
 
-  const canShowUpdateButton = computed(() => isPwaInstalled.value);
+  const canShowUpdateButton = computed(() => isStandaloneApp());
 
   async function applyWaitingWorker(): Promise<boolean> {
     const reg = registration ?? getServiceWorkerRegistration();

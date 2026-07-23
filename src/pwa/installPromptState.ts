@@ -1,5 +1,4 @@
 import { ref } from "vue";
-import { STORAGE_KEY_PWA_INSTALLED } from "@/constants";
 
 export interface InstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -7,41 +6,17 @@ export interface InstallPromptEvent extends Event {
 }
 
 export const deferredInstallPrompt = ref<InstallPromptEvent | null>(null);
+export const isRelatedAppInstalled = ref(false);
+export const isRelatedAppCheckDone = ref(false);
+export const installCompletedThisSession = ref(false);
 
-function isStandaloneMode(): boolean {
+export function isStandaloneApp(): boolean {
   return (
     window.matchMedia("(display-mode: standalone)").matches ||
     window.matchMedia("(display-mode: fullscreen)").matches ||
     (window.navigator as Navigator & { standalone?: boolean }).standalone === true
   );
 }
-
-function readPersistedInstallFlag(): boolean {
-  try {
-    return localStorage.getItem(STORAGE_KEY_PWA_INSTALLED) === "true";
-  } catch {
-    return false;
-  }
-}
-
-function persistInstallFlag(installed: boolean): void {
-  try {
-    if (installed) {
-      localStorage.setItem(STORAGE_KEY_PWA_INSTALLED, "true");
-      return;
-    }
-
-    localStorage.removeItem(STORAGE_KEY_PWA_INSTALLED);
-  } catch {
-    // file:// и приватный режим могут блокировать localStorage
-  }
-}
-
-function computeInstalledState(): boolean {
-  return isStandaloneMode() || readPersistedInstallFlag();
-}
-
-export const isPwaInstalled = ref(computeInstalledState());
 
 export function isFileProtocol(): boolean {
   return window.location.protocol === "file:";
@@ -51,17 +26,7 @@ export function isPwaInstallSupported(): boolean {
   return window.isSecureContext && !isFileProtocol();
 }
 
-export function markPwaInstalled(): void {
-  isPwaInstalled.value = true;
-  persistInstallFlag(true);
-}
-
-export function clearPersistedInstallFlag(): void {
-  isPwaInstalled.value = isStandaloneMode();
-  persistInstallFlag(false);
-}
-
-async function detectRelatedInstalledApps(): Promise<boolean> {
+export async function checkRelatedInstalledApps(): Promise<boolean> {
   const getInstalledRelatedApps = (
     navigator as Navigator & {
       getInstalledRelatedApps?: () => Promise<unknown[]>;
@@ -80,39 +45,44 @@ async function detectRelatedInstalledApps(): Promise<boolean> {
   }
 }
 
+export async function refreshRelatedAppInstalledState(): Promise<boolean> {
+  const installed = await checkRelatedInstalledApps();
+  isRelatedAppInstalled.value = installed;
+  isRelatedAppCheckDone.value = true;
+  return installed;
+}
+
 export function initInstallPromptCapture(): void {
   if (!isPwaInstallSupported()) {
+    isRelatedAppCheckDone.value = true;
     return;
   }
 
-  void detectRelatedInstalledApps().then((installed) => {
-    if (installed) {
-      markPwaInstalled();
+  void refreshRelatedAppInstalledState();
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      void refreshRelatedAppInstalledState();
     }
   });
 
   window.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();
-
-    if (isPwaInstalled.value && !isStandaloneMode()) {
-      clearPersistedInstallFlag();
-    }
-
+    isRelatedAppInstalled.value = false;
+    installCompletedThisSession.value = false;
     deferredInstallPrompt.value = event as InstallPromptEvent;
   });
 
   window.addEventListener("appinstalled", () => {
-    markPwaInstalled();
+    isRelatedAppInstalled.value = true;
+    installCompletedThisSession.value = true;
     deferredInstallPrompt.value = null;
   });
 
   const standaloneMedia = window.matchMedia("(display-mode: standalone)");
   standaloneMedia.addEventListener("change", () => {
-    if (isStandaloneMode()) {
-      markPwaInstalled();
-      return;
+    if (isStandaloneApp()) {
+      deferredInstallPrompt.value = null;
     }
-
-    isPwaInstalled.value = readPersistedInstallFlag();
   });
 }

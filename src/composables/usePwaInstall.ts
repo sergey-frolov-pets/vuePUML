@@ -4,8 +4,11 @@ import {
   deferredInstallPrompt,
   isFileProtocol,
   isPwaInstallSupported,
-  isPwaInstalled,
-  markPwaInstalled,
+  isRelatedAppCheckDone,
+  isRelatedAppInstalled,
+  isStandaloneApp,
+  installCompletedThisSession,
+  refreshRelatedAppInstalledState,
 } from "@/pwa/installPromptState";
 
 const HTTPS_SETUP_MESSAGE =
@@ -13,19 +16,36 @@ const HTTPS_SETUP_MESSAGE =
   "В GitHub: Settings → Pages → Custom domain → дождитесь проверки DNS и включите «Enforce HTTPS».";
 
 const BROWSER_INSTALL_MESSAGE =
-  "Браузер не предлагает установку повторно. Откройте меню браузера → «Установить приложение» или «Добавить на главный экран».";
+  "Браузер ещё не готов предложить установку. Подождите несколько секунд и нажмите снова " +
+  "или откройте меню браузера → «Установить приложение» / «Добавить на главный экран».";
 
 const ALREADY_INSTALLED_MESSAGE =
   "Приложение уже установлено. Откройте его с рабочего стола, из меню приложений или через иконку на панели задач. " +
-  "Для обновления используйте кнопку «Обновить» в установленном приложении.";
+  "Если вы удалили приложение — перезагрузите страницу и подождите, пока браузер снова предложит установку.";
 
 export function usePwaInstall() {
   const isInstalling = ref(false);
   const { alert } = useAppDialog();
 
-  const canShowInstallButton = computed(
-    () => !isFileProtocol() && !isPwaInstalled.value,
-  );
+  const canShowInstallButton = computed(() => {
+    if (isFileProtocol() || isStandaloneApp()) {
+      return false;
+    }
+
+    if (deferredInstallPrompt.value) {
+      return true;
+    }
+
+    if (installCompletedThisSession.value) {
+      return false;
+    }
+
+    if (!isRelatedAppCheckDone.value) {
+      return true;
+    }
+
+    return !isRelatedAppInstalled.value;
+  });
 
   const canInstallNow = computed(
     () => isPwaInstallSupported() && deferredInstallPrompt.value !== null,
@@ -47,11 +67,10 @@ export function usePwaInstall() {
 
     const promptEvent = deferredInstallPrompt.value;
     if (!promptEvent) {
+      const installed = await refreshRelatedAppInstalledState();
       await alert({
-        title: isPwaInstalled.value ? "Уже установлено" : "Установка недоступна",
-        message: isPwaInstalled.value
-          ? ALREADY_INSTALLED_MESSAGE
-          : BROWSER_INSTALL_MESSAGE,
+        title: installed ? "Уже установлено" : "Установка недоступна",
+        message: installed ? ALREADY_INSTALLED_MESSAGE : BROWSER_INSTALL_MESSAGE,
       });
       return;
     }
@@ -63,7 +82,8 @@ export function usePwaInstall() {
       const choice = await promptEvent.userChoice;
 
       if (choice.outcome === "accepted") {
-        markPwaInstalled();
+        isRelatedAppInstalled.value = true;
+        installCompletedThisSession.value = true;
       }
     } finally {
       deferredInstallPrompt.value = null;
