@@ -14,6 +14,9 @@ const {
   onPointerDown,
   onPointerUp,
   onPointerCancel,
+  onTouchStart,
+  onTouchEnd,
+  onTouchCancel,
 } = useLongPressTooltip(rootRef);
 </script>
 
@@ -24,6 +27,9 @@ const {
     @pointerdown.capture="onPointerDown"
     @pointerup.capture="onPointerUp"
     @pointercancel.capture="onPointerCancel"
+    @touchstart.capture.passive="onTouchStart"
+    @touchend.capture="onTouchEnd"
+    @touchcancel.capture="onTouchCancel"
     @contextmenu.prevent
   >
     <slot />
@@ -51,5 +57,6 @@ const {
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 </style>

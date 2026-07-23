@@ -22,6 +22,9 @@ const {
   onPointerDown,
   onPointerUp,
   onPointerCancel,
+  onTouchStart,
+  onTouchEnd,
+  onTouchCancel,
   consumeSuppressClick,
 } = useLongPressTooltip(rootRef);
 
@@ -52,6 +55,9 @@ function onClick(event: MouseEvent): void {
     @pointerdown="onPointerDown"
     @pointerup="onPointerUp"
     @pointercancel="onPointerCancel"
+    @touchstart.passive="onTouchStart"
+    @touchend="onTouchEnd"
+    @touchcancel="onTouchCancel"
     @contextmenu.prevent
     @click="onClick"
   >
@@ -79,6 +85,7 @@ function onClick(event: MouseEvent): void {
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .icon-btn--pressed {

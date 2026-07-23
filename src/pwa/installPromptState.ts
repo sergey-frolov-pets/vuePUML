@@ -8,6 +8,7 @@ export interface InstallPromptEvent extends Event {
 declare global {
   interface Window {
     __deferredPwaInstallPrompt?: InstallPromptEvent | null;
+    __pwaSwRegistrationError?: string | null;
   }
 
   interface WindowEventMap {

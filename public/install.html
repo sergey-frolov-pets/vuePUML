@@ -158,7 +158,17 @@ icons/
       installUrl.textContent = location.origin + "/install.html";
 
       if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("./sw.js").catch(function () {});
+        var swUrl = new URL("sw.js", window.location.href).href;
+        var swScope = new URL("./", window.location.href).href;
+        navigator.serviceWorker
+          .register(swUrl, { scope: swScope, updateViaCache: "none" })
+          .catch(function () {
+            return navigator.serviceWorker.register(
+              new URL("/sw.js", window.location.origin).href,
+              { scope: new URL("/", window.location.origin).href, updateViaCache: "none" },
+            );
+          })
+          .catch(function () {});
       }
 
       let deferredPrompt = null;

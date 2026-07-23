@@ -1,6 +1,6 @@
 import { onBeforeUnmount, onMounted, ref, type Ref } from 'vue';
 
-const LONG_PRESS_MS = 450;
+const LONG_PRESS_MS = 400;
 const TOOLTIP_HIDE_MS = 2200;
 const TOOLTIP_OFFSET_PX = 8;
 
@@ -12,6 +12,7 @@ export function useLongPressTooltip(rootRef: Ref<HTMLElement | null>) {
   let pressTimer: ReturnType<typeof setTimeout> | null = null;
   let hideTimer: ReturnType<typeof setTimeout> | null = null;
   let activePointerId: number | null = null;
+  let touchActive = false;
 
   function clearPressTimer(): void {
     if (pressTimer !== null) {
@@ -57,6 +58,7 @@ export function useLongPressTooltip(rootRef: Ref<HTMLElement | null>) {
     clearHideTimer();
     releasePointerCapture();
     activePointerId = null;
+    touchActive = false;
   }
 
   function showTooltip(): void {
@@ -75,15 +77,24 @@ export function useLongPressTooltip(rootRef: Ref<HTMLElement | null>) {
     }, TOOLTIP_HIDE_MS);
   }
 
+  function startPressTimer(): void {
+    clearPressTimer();
+    clearHideTimer();
+    tooltipVisible.value = false;
+
+    pressTimer = setTimeout(() => {
+      showTooltip();
+      pressTimer = null;
+    }, LONG_PRESS_MS);
+  }
+
   function onPointerDown(event: PointerEvent): void {
     if (event.button !== 0) return;
     if (activePointerId !== null && activePointerId !== event.pointerId) return;
 
     activePointerId = event.pointerId;
     suppressNextClick.value = false;
-    clearPressTimer();
-    clearHideTimer();
-    tooltipVisible.value = false;
+    touchActive = event.pointerType === 'touch';
 
     const el = rootRef.value ?? (event.currentTarget as HTMLElement | null);
     if (el) {
@@ -94,10 +105,7 @@ export function useLongPressTooltip(rootRef: Ref<HTMLElement | null>) {
       }
     }
 
-    pressTimer = setTimeout(() => {
-      showTooltip();
-      pressTimer = null;
-    }, LONG_PRESS_MS);
+    startPressTimer();
   }
 
   function onPointerUp(event: PointerEvent): void {
@@ -106,11 +114,47 @@ export function useLongPressTooltip(rootRef: Ref<HTMLElement | null>) {
     clearPressTimer();
     releasePointerCapture();
     activePointerId = null;
+    touchActive = false;
   }
 
   function onPointerCancel(event: PointerEvent): void {
     if (activePointerId !== null && event.pointerId !== activePointerId) return;
-    hideTooltip();
+
+    // Mobile browsers often fire pointercancel while scrolling the toolbar.
+    // Keep the long-press timer so the tooltip can still appear.
+    releasePointerCapture();
+
+    if (tooltipVisible.value) {
+      hideTooltip();
+    }
+  }
+
+  function onTouchStart(event: TouchEvent): void {
+    if (event.touches.length !== 1) return;
+    if (touchActive || activePointerId !== null) return;
+
+    touchActive = true;
+    suppressNextClick.value = false;
+    startPressTimer();
+  }
+
+  function onTouchEnd(): void {
+    if (!touchActive) return;
+
+    clearPressTimer();
+    touchActive = false;
+  }
+
+  function onTouchCancel(): void {
+    if (!touchActive) return;
+
+    if (tooltipVisible.value) {
+      hideTooltip();
+      return;
+    }
+
+    clearPressTimer();
+    touchActive = false;
   }
 
   function consumeSuppressClick(): boolean {
@@ -141,6 +185,9 @@ export function useLongPressTooltip(rootRef: Ref<HTMLElement | null>) {
     onPointerDown,
     onPointerUp,
     onPointerCancel,
+    onTouchStart,
+    onTouchEnd,
+    onTouchCancel,
     hideTooltip,
     consumeSuppressClick,
   };

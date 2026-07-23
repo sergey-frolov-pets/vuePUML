@@ -6,6 +6,10 @@ import {
   inspectPwaInstallStatus,
 } from "@/pwa/installability";
 import {
+  registerAppServiceWorker,
+  waitForServiceWorkerControl,
+} from "@/pwa/serviceWorkerRegistration";
+import {
   deferredInstallPrompt,
   isFileProtocol,
   isPwaInstallSupported,
@@ -45,6 +49,8 @@ export function usePwaInstall() {
 
   async function showManualInstallHelp(): Promise<void> {
     syncEarlyPrompt();
+    await registerAppServiceWorker();
+    await waitForServiceWorkerControl();
     const installed = await refreshRelatedAppInstalledState();
     const status = await inspectPwaInstallStatus({
       hasDeferredPrompt: deferredInstallPrompt.value !== null,
@@ -90,6 +96,8 @@ export function usePwaInstall() {
       }
 
       syncEarlyPrompt();
+      await registerAppServiceWorker();
+      await waitForServiceWorkerControl();
 
       const promptEvent = deferredInstallPrompt.value;
       if (promptEvent) {
