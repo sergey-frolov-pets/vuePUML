@@ -1,5 +1,5 @@
 import { ref } from "vue";
-import { writeInstalledAppVersion, getCurrentAppVersion } from "@/pwa/appVersion";
+import { writeInstalledAppVersion, getCurrentAppVersion, clearInstalledAppVersion } from "@/pwa/appVersion";
 
 export interface InstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -50,6 +50,11 @@ export async function refreshRelatedAppInstalledState(): Promise<boolean> {
   const installed = await checkRelatedInstalledApps();
   isRelatedAppInstalled.value = installed;
   isRelatedAppCheckDone.value = true;
+
+  if (!installed && !isStandaloneApp() && !installCompletedThisSession.value) {
+    clearInstalledAppVersion();
+  }
+
   return installed;
 }
 
@@ -71,6 +76,7 @@ export function initInstallPromptCapture(): void {
     event.preventDefault();
     isRelatedAppInstalled.value = false;
     installCompletedThisSession.value = false;
+    clearInstalledAppVersion();
     deferredInstallPrompt.value = event as InstallPromptEvent;
   });
 

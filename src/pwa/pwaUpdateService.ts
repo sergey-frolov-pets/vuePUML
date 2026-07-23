@@ -11,8 +11,9 @@ import {
   registerServiceWorker,
 } from "@/pwa/serviceWorker";
 
-const UPDATE_CHECK_DELAY_MS = 600;
-const SW_VERSION_TIMEOUT_MS = 2000;
+const UPDATE_CHECK_DELAY_MS = 300;
+const SW_VERSION_TIMEOUT_MS = 800;
+const SW_UPDATE_TIMEOUT_MS = 3000;
 
 export const updateAvailable = ref(false);
 
@@ -66,6 +67,22 @@ async function waitForUpdateCheck(): Promise<void> {
   });
 }
 
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T | null> {
+  return new Promise((resolve) => {
+    const timeoutId = window.setTimeout(() => resolve(null), timeoutMs);
+
+    void promise
+      .then((value) => {
+        window.clearTimeout(timeoutId);
+        resolve(value);
+      })
+      .catch(() => {
+        window.clearTimeout(timeoutId);
+        resolve(null);
+      });
+  });
+}
+
 async function readActiveSwVersion(
   reg: ServiceWorkerRegistration,
 ): Promise<string | null> {
@@ -95,14 +112,16 @@ export async function checkForPwaUpdate(): Promise<PwaUpdateCheckResult> {
 
   const reg = registration ?? getServiceWorkerRegistration();
   if (reg) {
-    try {
-      await reg.update();
-      await waitForUpdateCheck();
-      waitingWorker = Boolean(reg.waiting);
-      activeSwVersion = await readActiveSwVersion(reg);
-    } catch {
-      // optional PWA feature
-    }
+    await withTimeout(
+      (async () => {
+        await reg.update();
+        await waitForUpdateCheck();
+        waitingWorker = Boolean(reg.waiting);
+        activeSwVersion = await readActiveSwVersion(reg);
+        return true;
+      })(),
+      SW_UPDATE_TIMEOUT_MS,
+    );
   }
 
   const hasUpdate =

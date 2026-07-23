@@ -1,8 +1,7 @@
-import { computed, ref } from "vue";
+import { computed } from "vue";
 import { useAppDialog } from "@/composables/useAppDialog";
 import {
   getCurrentAppVersion,
-  installedAppVersion,
   readInstalledAppVersion,
   writeInstalledAppVersion,
 } from "@/pwa/appVersion";
@@ -15,6 +14,7 @@ import {
   installCompletedThisSession,
   refreshRelatedAppInstalledState,
 } from "@/pwa/installPromptState";
+import { isPwaInstallInProgress } from "@/pwa/pwaInstallState";
 import { applyPwaUpdate, checkForPwaUpdate } from "@/pwa/pwaUpdateService";
 
 const HTTPS_SETUP_MESSAGE =
@@ -24,6 +24,9 @@ const HTTPS_SETUP_MESSAGE =
 const BROWSER_INSTALL_MESSAGE =
   "Браузер ещё не готов предложить установку. Подождите несколько секунд и нажмите снова " +
   "или откройте меню браузера → «Установить приложение» / «Добавить на главный экран».";
+
+const INSTALL_ERROR_MESSAGE =
+  "Не удалось выполнить установку. Попробуйте через меню браузера или перезагрузите страницу.";
 
 function formatInstalledVersionMessage(installedVersion: string | null): string {
   const currentVersion = getCurrentAppVersion();
@@ -36,14 +39,12 @@ function formatInstalledVersionMessage(installedVersion: string | null): string 
 }
 
 export function usePwaInstall() {
-  const isInstalling = ref(false);
   const { alert, confirm } = useAppDialog();
 
   const isAlreadyInstalled = computed(
     () =>
       isRelatedAppInstalled.value ||
-      installCompletedThisSession.value ||
-      installedAppVersion.value !== null,
+      installCompletedThisSession.value,
   );
 
   const canShowInstallButton = computed(
@@ -55,11 +56,7 @@ export function usePwaInstall() {
       return false;
     }
 
-    if (deferredInstallPrompt.value) {
-      return true;
-    }
-
-    return isAlreadyInstalled.value;
+    return Boolean(deferredInstallPrompt.value) || isAlreadyInstalled.value;
   });
 
   const needsHttps = computed(
@@ -71,7 +68,7 @@ export function usePwaInstall() {
       return true;
     }
 
-    if (readInstalledAppVersion() !== null) {
+    if (isRelatedAppInstalled.value) {
       return true;
     }
 
@@ -94,14 +91,7 @@ export function usePwaInstall() {
         return;
       }
 
-      isInstalling.value = true;
-
-      try {
-        await applyPwaUpdate();
-      } finally {
-        isInstalling.value = false;
-      }
-
+      await applyPwaUpdate();
       return;
     }
 
@@ -112,20 +102,24 @@ export function usePwaInstall() {
   }
 
   async function installApp(): Promise<void> {
-    if (!isPwaInstallSupported()) {
-      await alert({
-        title: "Нужен HTTPS",
-        message: HTTPS_SETUP_MESSAGE,
-        variant: "error",
-      });
+    if (isPwaInstallInProgress.value) {
       return;
     }
 
-    const promptEvent = deferredInstallPrompt.value;
-    if (promptEvent) {
-      isInstalling.value = true;
+    isPwaInstallInProgress.value = true;
 
-      try {
+    try {
+      if (!isPwaInstallSupported()) {
+        await alert({
+          title: "Нужен HTTPS",
+          message: HTTPS_SETUP_MESSAGE,
+          variant: "error",
+        });
+        return;
+      }
+
+      const promptEvent = deferredInstallPrompt.value;
+      if (promptEvent) {
         await promptEvent.prompt();
         const choice = await promptEvent.userChoice;
 
@@ -134,23 +128,34 @@ export function usePwaInstall() {
           installCompletedThisSession.value = true;
           writeInstalledAppVersion(getCurrentAppVersion());
         }
-      } finally {
+
         deferredInstallPrompt.value = null;
-        isInstalling.value = false;
+        return;
       }
 
-      return;
-    }
+      if (await isAppAlreadyInstalled()) {
+        await handleInstalledAppAction();
+        return;
+      }
 
-    if (await isAppAlreadyInstalled()) {
-      await handleInstalledAppAction();
-      return;
-    }
+      if (readInstalledAppVersion() !== null) {
+        await handleInstalledAppAction();
+        return;
+      }
 
-    await alert({
-      title: "Установка недоступна",
-      message: BROWSER_INSTALL_MESSAGE,
-    });
+      await alert({
+        title: "Установка недоступна",
+        message: BROWSER_INSTALL_MESSAGE,
+      });
+    } catch {
+      await alert({
+        title: "Ошибка установки",
+        message: INSTALL_ERROR_MESSAGE,
+        variant: "error",
+      });
+    } finally {
+      isPwaInstallInProgress.value = false;
+    }
   }
 
   return {
@@ -158,7 +163,7 @@ export function usePwaInstall() {
     canInstallNow,
     needsHttps,
     isAlreadyInstalled,
-    isInstalling,
+    isInstalling: isPwaInstallInProgress,
     installApp,
   };
 }

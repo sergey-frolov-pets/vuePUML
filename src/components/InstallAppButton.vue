@@ -45,6 +45,7 @@ const installLabel = computed(() =>
     :aria-label="installTitle"
     :title="installTitle"
     :disabled="isInstalling"
+    :aria-busy="isInstalling"
     @click="installApp"
   >
     <svg class="install-app-btn__icon" viewBox="0 0 24 24" aria-hidden="true">
