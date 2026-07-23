@@ -26,6 +26,7 @@ export const STORAGE_KEY_DARK = "plantuml-smetana-dark";
 export const STORAGE_KEY_UI_DARK = "plantuml-smetana-ui-dark";
 export const STORAGE_KEY_DIAGRAM_DARK = "plantuml-smetana-diagram-dark";
 export const STORAGE_KEY_LAYOUT = "plantuml-smetana-layout";
+export const STORAGE_KEY_PWA_INSTALLED = "plantuml-smetana-pwa-installed";
 
 export const RENDER_DEBOUNCE_MS = 400;
 
