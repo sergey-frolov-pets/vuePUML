@@ -1,12 +1,19 @@
-import { onBeforeUnmount, onMounted, ref, type Ref } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, ref, type Ref } from 'vue';
 
 const LONG_PRESS_MS = 400;
 const TOOLTIP_HIDE_MS = 2200;
 const TOOLTIP_OFFSET_PX = 8;
+const VIEWPORT_MARGIN_PX = 8;
+const TOOLTIP_ESTIMATED_WIDTH_PX = 200;
+const TOOLTIP_ESTIMATED_HEIGHT_PX = 40;
+
+export type TooltipPlacement = 'top' | 'bottom';
 
 export function useLongPressTooltip(rootRef: Ref<HTMLElement | null>) {
   const tooltipVisible = ref(false);
   const tooltipPosition = ref({ top: 0, left: 0 });
+  const tooltipPlacement = ref<TooltipPlacement>('top');
+  const tooltipRef = ref<HTMLElement | null>(null);
   const suppressNextClick = ref(false);
 
   let pressTimer: ReturnType<typeof setTimeout> | null = null;
@@ -41,15 +48,37 @@ export function useLongPressTooltip(rootRef: Ref<HTMLElement | null>) {
     }
   }
 
-  function updatePosition(): void {
-    const el = rootRef.value;
-    if (!el) return;
+  function clampTooltipPosition(): void {
+    const anchor = rootRef.value;
+    if (!anchor) return;
 
-    const rect = el.getBoundingClientRect();
-    tooltipPosition.value = {
-      top: rect.top - TOOLTIP_OFFSET_PX,
-      left: rect.left + rect.width / 2,
-    };
+    const anchorRect = anchor.getBoundingClientRect();
+    const tooltip = tooltipRef.value;
+    const tooltipWidth = tooltip?.offsetWidth ?? TOOLTIP_ESTIMATED_WIDTH_PX;
+    const tooltipHeight = tooltip?.offsetHeight ?? TOOLTIP_ESTIMATED_HEIGHT_PX;
+    const halfWidth = tooltipWidth / 2;
+
+    let left = anchorRect.left + anchorRect.width / 2;
+    left = Math.max(
+      VIEWPORT_MARGIN_PX + halfWidth,
+      Math.min(window.innerWidth - VIEWPORT_MARGIN_PX - halfWidth, left),
+    );
+
+    const spaceAbove = anchorRect.top - VIEWPORT_MARGIN_PX;
+    const spaceBelow = window.innerHeight - anchorRect.bottom - VIEWPORT_MARGIN_PX;
+    let placement: TooltipPlacement = 'top';
+    let top = anchorRect.top - TOOLTIP_OFFSET_PX;
+
+    if (
+      spaceAbove < tooltipHeight + TOOLTIP_OFFSET_PX &&
+      spaceBelow > spaceAbove
+    ) {
+      placement = 'bottom';
+      top = anchorRect.bottom + TOOLTIP_OFFSET_PX;
+    }
+
+    tooltipPosition.value = { top, left };
+    tooltipPlacement.value = placement;
   }
 
   function hideTooltip(): void {
@@ -62,7 +91,6 @@ export function useLongPressTooltip(rootRef: Ref<HTMLElement | null>) {
   }
 
   function showTooltip(): void {
-    updatePosition();
     tooltipVisible.value = true;
     suppressNextClick.value = true;
 
@@ -75,6 +103,12 @@ export function useLongPressTooltip(rootRef: Ref<HTMLElement | null>) {
       tooltipVisible.value = false;
       hideTimer = null;
     }, TOOLTIP_HIDE_MS);
+
+    void nextTick(() => {
+      requestAnimationFrame(() => {
+        clampTooltipPosition();
+      });
+    });
   }
 
   function startPressTimer(): void {
@@ -120,8 +154,6 @@ export function useLongPressTooltip(rootRef: Ref<HTMLElement | null>) {
   function onPointerCancel(event: PointerEvent): void {
     if (activePointerId !== null && event.pointerId !== activePointerId) return;
 
-    // Mobile browsers often fire pointercancel while scrolling the toolbar.
-    // Keep the long-press timer so the tooltip can still appear.
     releasePointerCapture();
 
     if (tooltipVisible.value) {
@@ -165,7 +197,7 @@ export function useLongPressTooltip(rootRef: Ref<HTMLElement | null>) {
 
   function onViewportChange(): void {
     if (!tooltipVisible.value) return;
-    updatePosition();
+    clampTooltipPosition();
   }
 
   onMounted(() => {
@@ -182,6 +214,8 @@ export function useLongPressTooltip(rootRef: Ref<HTMLElement | null>) {
   return {
     tooltipVisible,
     tooltipPosition,
+    tooltipPlacement,
+    tooltipRef,
     onPointerDown,
     onPointerUp,
     onPointerCancel,

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import IconButton from "@/components/IconButton.vue";
+
 defineProps<{
   active: boolean;
 }>();
@@ -9,12 +11,10 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <button
-    type="button"
-    class="btn btn-icon panel-header__fullscreen"
-    :aria-label="active ? 'Свернуть' : 'На весь экран'"
-    :title="active ? 'Свернуть' : 'На весь экран'"
-    :aria-pressed="active"
+  <IconButton
+    extra-class="panel-header__fullscreen"
+    :label="active ? 'Свернуть' : 'На весь экран'"
+    :pressed="active"
     @click="emit('toggle')"
   >
     <svg
@@ -40,5 +40,5 @@ const emit = defineEmits<{
     >
       <rect x="9" y="9" width="6" height="6" fill="currentColor" />
     </svg>
-  </button>
+  </IconButton>
 </template>
