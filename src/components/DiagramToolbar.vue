@@ -93,11 +93,7 @@ function toggleDiagramTheme(): void {
 
 <style scoped>
 .preview-toolbar {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 6px;
-  align-items: center;
-  flex-shrink: 0;
+  display: contents;
 }
 
 .preview-toolbar__color-field {
@@ -108,8 +104,8 @@ function toggleDiagramTheme(): void {
 
 .preview-toolbar__color {
   box-sizing: border-box;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   padding: 2px;
   border: 1px solid var(--border);
   border-radius: 8px;

@@ -207,15 +207,16 @@ watch(
 
 <template>
   <section
-    class="panel editor-panel panel--corner-controls"
+    class="panel editor-panel"
     :class="{ 'is-fullscreen': isFullscreen }"
     :style="editorStyle"
   >
-    <PanelFullscreenButton :active="isFullscreen" @toggle="toggleFullscreen" />
-
     <header class="panel-header">
-      <h2 class="panel-title">Исходный код PlantUML</h2>
-      <div class="header-actions">
+      <div class="panel-header__top">
+        <h2 class="panel-title" title="Исходный код PlantUML">Код</h2>
+        <PanelFullscreenButton :active="isFullscreen" @toggle="toggleFullscreen" />
+      </div>
+      <div class="panel-header__toolbar header-actions">
         <IconButton label="Открыть .puml" @click="openFilePicker">
           <ActionIcon name="folder-open" />
         </IconButton>
@@ -328,13 +329,7 @@ watch(
 
 <style scoped>
 .header-actions {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 6px;
-  align-items: center;
-  flex: 1;
-  min-width: 0;
-  justify-content: flex-end;
+  display: contents;
 }
 
 .sample-select-wrap {
@@ -344,10 +339,12 @@ watch(
 }
 
 .sample-select {
-  width: 104px;
-  min-width: 104px;
-  padding: 0 8px;
-  font-size: 0.82rem;
+  width: 92px;
+  min-width: 92px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 6px;
+  font-size: 0.78rem;
 }
 
 .editor-panel.is-fullscreen {

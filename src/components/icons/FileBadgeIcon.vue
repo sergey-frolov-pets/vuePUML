@@ -16,7 +16,7 @@ defineProps<{
 <style scoped>
 .format-badge {
   display: inline-block;
-  font-size: 0.78rem;
+  font-size: 0.7rem;
   font-weight: 800;
   line-height: 1;
   letter-spacing: 0.04em;
