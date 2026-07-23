@@ -2,12 +2,22 @@
 import { computed } from "vue";
 import { usePwaInstall } from "@/composables/usePwaInstall";
 
-const { canShowInstallButton, canInstallNow, needsHttps, isInstalling, installApp } =
-  usePwaInstall();
+const {
+  canShowInstallButton,
+  canInstallNow,
+  needsHttps,
+  isAlreadyInstalled,
+  isInstalling,
+  installApp,
+} = usePwaInstall();
 
 const installTitle = computed(() => {
   if (needsHttps.value) {
     return "Установка доступна только по HTTPS";
+  }
+
+  if (isAlreadyInstalled.value) {
+    return "Проверить обновление или переустановить";
   }
 
   if (!canInstallNow.value) {
@@ -16,6 +26,10 @@ const installTitle = computed(() => {
 
   return "Установить приложение";
 });
+
+const installLabel = computed(() =>
+  isAlreadyInstalled.value ? "Обновить" : "Установить",
+);
 </script>
 
 <template>
@@ -25,6 +39,7 @@ const installTitle = computed(() => {
     :class="{
       'install-app-btn--waiting': !canInstallNow,
       'install-app-btn--needs-https': needsHttps,
+      'install-app-btn--installed': isAlreadyInstalled,
     }"
     type="button"
     :aria-label="installTitle"
@@ -53,7 +68,7 @@ const installTitle = computed(() => {
         stroke-linejoin="round"
       />
     </svg>
-    <span class="install-app-btn__label">Установить</span>
+    <span class="install-app-btn__label">{{ installLabel }}</span>
   </button>
 </template>
 
@@ -95,6 +110,11 @@ const installTitle = computed(() => {
 .install-app-btn--needs-https {
   border-color: color-mix(in srgb, var(--warning, #c98a00) 45%, var(--border));
   background: color-mix(in srgb, var(--warning, #c98a00) 10%, var(--surface));
+}
+
+.install-app-btn--installed {
+  border-color: color-mix(in srgb, var(--success) 35%, var(--border));
+  background: color-mix(in srgb, var(--success) 8%, var(--surface));
 }
 
 .install-app-btn__icon {

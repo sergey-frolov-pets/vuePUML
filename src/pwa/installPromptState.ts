@@ -1,4 +1,5 @@
 import { ref } from "vue";
+import { writeInstalledAppVersion, getCurrentAppVersion } from "@/pwa/appVersion";
 
 export interface InstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -77,6 +78,7 @@ export function initInstallPromptCapture(): void {
     isRelatedAppInstalled.value = true;
     installCompletedThisSession.value = true;
     deferredInstallPrompt.value = null;
+    writeInstalledAppVersion(getCurrentAppVersion());
   });
 
   const standaloneMedia = window.matchMedia("(display-mode: standalone)");

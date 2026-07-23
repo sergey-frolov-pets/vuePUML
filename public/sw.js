@@ -1,5 +1,6 @@
 const SHARED_PUML_CACHE = "shared-puml-v1";
 const APP_SHELL_CACHE = "vueplantuml-shell-v1";
+const APP_VERSION = "1.0.0";
 
 self.addEventListener("install", (event) => {
   if (!self.registration.active) {
@@ -12,6 +13,11 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("message", (event) => {
+  if (event.data?.type === "GET_VERSION") {
+    event.ports[0]?.postMessage({ version: APP_VERSION });
+    return;
+  }
+
   if (event.data?.type === "SKIP_WAITING") {
     self.skipWaiting();
     return;
