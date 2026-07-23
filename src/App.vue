@@ -5,6 +5,7 @@ import AppDialogHost from "@/components/AppDialogHost.vue";
 import DiagramEditor from "@/components/DiagramEditor.vue";
 import DiagramPreview from "@/components/DiagramPreview.vue";
 import InstallAppButton from "@/components/InstallAppButton.vue";
+import UpdateAppButton from "@/components/UpdateAppButton.vue";
 import SettingsModal from "@/components/SettingsModal.vue";
 import ShareHelpModal from "@/components/ShareHelpModal.vue";
 import SyntaxResultModal from "@/components/SyntaxResultModal.vue";
@@ -455,6 +456,7 @@ onMounted(() => {
       </div>
       <nav class="app-header__nav" aria-label="Настройки">
         <InstallAppButton />
+        <UpdateAppButton />
         <button
           class="btn app-header__settings-btn"
           type="button"

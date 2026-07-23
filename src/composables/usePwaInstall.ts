@@ -1,4 +1,5 @@
 import { computed, ref } from "vue";
+import { useAppDialog } from "@/composables/useAppDialog";
 import {
   deferredInstallPrompt,
   isFileProtocol,
@@ -7,6 +8,7 @@ import {
 
 export function usePwaInstall() {
   const isInstalling = ref(false);
+  const { alert } = useAppDialog();
 
   const canShowInstallButton = computed(
     () => !isFileProtocol() && !isPwaInstalled.value,
@@ -17,6 +19,11 @@ export function usePwaInstall() {
   async function installApp(): Promise<void> {
     const promptEvent = deferredInstallPrompt.value;
     if (!promptEvent) {
+      await alert({
+        title: "Установка недоступна",
+        message:
+          "Браузер не предлагает установку повторно. Откройте меню браузера → «Установить приложение» или «Добавить на главный экран».",
+      });
       return;
     }
 
