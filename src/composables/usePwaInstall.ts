@@ -5,6 +5,7 @@ import {
   isFileProtocol,
   isPwaInstallSupported,
   isPwaInstalled,
+  markPwaInstalled,
 } from "@/pwa/installPromptState";
 
 const HTTPS_SETUP_MESSAGE =
@@ -13,6 +14,10 @@ const HTTPS_SETUP_MESSAGE =
 
 const BROWSER_INSTALL_MESSAGE =
   "Браузер не предлагает установку повторно. Откройте меню браузера → «Установить приложение» или «Добавить на главный экран».";
+
+const ALREADY_INSTALLED_MESSAGE =
+  "Приложение уже установлено. Откройте его с рабочего стола, из меню приложений или через иконку на панели задач. " +
+  "Для обновления используйте кнопку «Обновить» в установленном приложении.";
 
 export function usePwaInstall() {
   const isInstalling = ref(false);
@@ -43,8 +48,10 @@ export function usePwaInstall() {
     const promptEvent = deferredInstallPrompt.value;
     if (!promptEvent) {
       await alert({
-        title: "Установка недоступна",
-        message: BROWSER_INSTALL_MESSAGE,
+        title: isPwaInstalled.value ? "Уже установлено" : "Установка недоступна",
+        message: isPwaInstalled.value
+          ? ALREADY_INSTALLED_MESSAGE
+          : BROWSER_INSTALL_MESSAGE,
       });
       return;
     }
@@ -56,7 +63,7 @@ export function usePwaInstall() {
       const choice = await promptEvent.userChoice;
 
       if (choice.outcome === "accepted") {
-        isPwaInstalled.value = true;
+        markPwaInstalled();
       }
     } finally {
       deferredInstallPrompt.value = null;
