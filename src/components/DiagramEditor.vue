@@ -6,6 +6,7 @@ import IconButton from "@/components/IconButton.vue";
 import TooltipWrap from "@/components/TooltipWrap.vue";
 import PanelFullscreenButton from "@/components/PanelFullscreenButton.vue";
 import { isSampleDiagramSource, SAMPLE_DIAGRAMS } from "@/constants";
+import { useAppDialog } from "@/composables/useAppDialog";
 import type { EditorFontSize } from "@/constants/editor-settings";
 import {
   loadPumlFromFile,
@@ -43,6 +44,8 @@ const highlightsRef = ref<HTMLDivElement | null>(null);
 const isDragOver = ref(false);
 const isFullscreen = ref(false);
 
+const { confirm } = useAppDialog();
+
 const gutterDigitCount = computed(() => String(lineCount.value).length);
 
 const editorStyle = computed(() => ({
@@ -72,7 +75,7 @@ const validateLabel = computed(() =>
   props.isValidating ? "Проверка..." : "Проверить синтаксис",
 );
 
-function requestClear(): void {
+async function requestClear(): Promise<void> {
   if (!canClear.value) {
     return;
   }
@@ -82,9 +85,14 @@ function requestClear(): void {
     return;
   }
 
-  if (
-    window.confirm("Очистить редактор? Текущий код будет удалён.")
-  ) {
+  const confirmed = await confirm({
+    title: "Очистить редактор?",
+    message: "Текущий код будет удалён.",
+    confirmLabel: "Очистить",
+    variant: "danger",
+  });
+
+  if (confirmed) {
     clearEditor();
   }
 }

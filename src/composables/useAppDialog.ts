@@ -1,0 +1,168 @@
+import { ref } from "vue";
+
+export type DialogVariant = "default" | "danger";
+
+export type ConfirmDialogOptions = {
+  title: string;
+  message?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  variant?: DialogVariant;
+};
+
+export type PromptDialogOptions = {
+  title: string;
+  message?: string;
+  value?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  placeholder?: string;
+};
+
+export type AlertDialogOptions = {
+  title: string;
+  message: string;
+  confirmLabel?: string;
+  variant?: "default" | "error";
+};
+
+type DialogState =
+  | {
+      type: "confirm";
+      options: ConfirmDialogOptions;
+      resolve: (value: boolean) => void;
+    }
+  | {
+      type: "prompt";
+      options: PromptDialogOptions;
+      value: string;
+      resolve: (value: string | null) => void;
+    }
+  | {
+      type: "alert";
+      options: AlertDialogOptions;
+      resolve: () => void;
+    };
+
+const DEFAULT_CANCEL_LABEL = "Отмена";
+const DEFAULT_CONFIRM_LABEL = "OK";
+
+const dialogState = ref<DialogState | null>(null);
+
+function closeDialog(): void {
+  dialogState.value = null;
+}
+
+export function useAppDialog() {
+  function confirm(options: ConfirmDialogOptions): Promise<boolean> {
+    return new Promise((resolve) => {
+      dialogState.value = {
+        type: "confirm",
+        options,
+        resolve: (value) => {
+          closeDialog();
+          resolve(value);
+        },
+      };
+    });
+  }
+
+  function prompt(options: PromptDialogOptions): Promise<string | null> {
+    return new Promise((resolve) => {
+      dialogState.value = {
+        type: "prompt",
+        options,
+        value: options.value ?? "",
+        resolve: (value) => {
+          closeDialog();
+          resolve(value);
+        },
+      };
+    });
+  }
+
+  function alert(options: AlertDialogOptions): Promise<void> {
+    return new Promise((resolve) => {
+      dialogState.value = {
+        type: "alert",
+        options,
+        resolve: () => {
+          closeDialog();
+          resolve();
+        },
+      };
+    });
+  }
+
+  function cancelDialog(): void {
+    const dialog = dialogState.value;
+    if (!dialog) {
+      return;
+    }
+
+    if (dialog.type === "confirm") {
+      dialog.resolve(false);
+      return;
+    }
+
+    if (dialog.type === "prompt") {
+      dialog.resolve(null);
+      return;
+    }
+
+    dialog.resolve();
+  }
+
+  function submitDialog(value?: string): void {
+    const dialog = dialogState.value;
+    if (!dialog) {
+      return;
+    }
+
+    if (dialog.type === "confirm") {
+      dialog.resolve(true);
+      return;
+    }
+
+    if (dialog.type === "prompt") {
+      dialog.resolve(value ?? dialog.value);
+      return;
+    }
+
+    dialog.resolve();
+  }
+
+  function updatePromptValue(value: string): void {
+    if (dialogState.value?.type === "prompt") {
+      dialogState.value.value = value;
+    }
+  }
+
+  function getCancelLabel(dialog: DialogState): string {
+    if (dialog.type === "alert") {
+      return DEFAULT_CANCEL_LABEL;
+    }
+
+    return dialog.options.cancelLabel ?? DEFAULT_CANCEL_LABEL;
+  }
+
+  function getConfirmLabel(dialog: DialogState): string {
+    if (dialog.type === "alert") {
+      return dialog.options.confirmLabel ?? DEFAULT_CONFIRM_LABEL;
+    }
+
+    return dialog.options.confirmLabel ?? DEFAULT_CONFIRM_LABEL;
+  }
+
+  return {
+    dialogState,
+    confirm,
+    prompt,
+    alert,
+    cancelDialog,
+    submitDialog,
+    updatePromptValue,
+    getCancelLabel,
+    getConfirmLabel,
+  };
+}
