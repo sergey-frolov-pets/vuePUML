@@ -20,6 +20,13 @@ const emit = defineEmits<{
     <p class="about-meta">Разработана <strong>{{ APP_META.developer }}</strong></p>
     <p class="about-meta">Версия {{ APP_META.version }}</p>
 
+    <h3 class="about-subtitle">Сайт</h3>
+    <p class="about-meta">
+      <a :href="APP_LINKS.site" target="_blank" rel="noopener noreferrer">
+        puml.sergey-frolov.ru
+      </a>
+    </p>
+
     <h3 class="about-subtitle">Исходный код</h3>
     <p class="about-meta">
       <a :href="APP_LINKS.github" target="_blank" rel="noopener noreferrer">

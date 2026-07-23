@@ -1,6 +1,7 @@
 import {
   copyFileSync,
   cpSync,
+  existsSync,
   mkdirSync,
   readFileSync,
   readdirSync,
@@ -67,10 +68,16 @@ function buildSingleHtml() {
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
     <meta name="color-scheme" content="light dark" />
+    <meta
+      name="description"
+      content="Офлайн-редактор и генератор PlantUML диаграмм на Vue.js"
+    />
     <title>vuePlantUML</title>
+    <link rel="canonical" href="https://puml.sergey-frolov.ru/" />
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <meta name="theme-color" content="#42b883" />
     ${css ? `<style>\n${css}\n    </style>` : ""}
   </head>
   <body>
@@ -117,6 +124,10 @@ ${escapeScriptContent(appJs)}
     path.join(appRoot, "public", "start-termux.sh"),
     path.join(distDir, "start-termux.sh"),
   );
+  const cnamePath = path.join(appRoot, "public", "CNAME");
+  if (existsSync(cnamePath)) {
+    copyFileSync(cnamePath, path.join(distDir, "CNAME"));
+  }
   cpSync(path.join(appRoot, "public", "icons"), path.join(distDir, "icons"), {
     recursive: true,
   });

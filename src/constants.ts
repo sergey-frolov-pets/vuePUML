@@ -6,6 +6,7 @@ export const APP_META = {
 } as const;
 
 export const APP_LINKS = {
+  site: "https://puml.sergey-frolov.ru/",
   github: "https://github.com/sergey-frolov-pets/vuePUML",
   githubReleases:
     "https://github.com/sergey-frolov-pets/vuePUML/releases/latest",
